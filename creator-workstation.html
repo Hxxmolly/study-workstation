@@ -627,8 +627,8 @@
       <div class="timer-card">
         <div class="timer-time" id="focusTimer">00:00:00</div>
         <div class="timer-row">
-          <button class="timer-btn timer-start" onclick="startTimer('focus')">开始专注</button>
-          <button class="timer-btn timer-stop" onclick="stopTimer('focus')">结束</button>
+          <button class="timer-btn timer-start" id="timerStartBtn">开始专注</button>
+          <button class="timer-btn timer-stop" id="timerStopBtn">结束</button>
         </div>
       </div>
       <div class="section-label">今日专注统计</div>
@@ -1024,10 +1024,9 @@
   }
   function startTimer(name) {
     if (state.intervals[name]) return;
-    const startBtn = event.target;
-    startBtn.textContent = '专注中...';
-    startBtn.style.opacity = '0.7';
-    state.intervals[name] = setInterval(() => {
+    var startBtn = document.querySelector('#page-timer .timer-start');
+    if (startBtn) { startBtn.textContent = '专注中...'; startBtn.style.opacity = '0.7'; }
+    state.intervals[name] = setInterval(function() {
       state.timers[name]++;
       document.getElementById(name+'Timer').textContent = fmt(state.timers[name]);
     }, 1000);
@@ -1035,18 +1034,30 @@
   function stopTimer(name) {
     clearInterval(state.intervals[name]);
     state.intervals[name] = null;
-    const elapsed = state.timers[name];
+    var elapsed = state.timers[name];
     if (elapsed > 0) {
       state.todaySessions++;
       state.todayFocusMin += Math.round(elapsed / 60);
       document.getElementById('todaySessions').textContent = state.todaySessions;
       document.getElementById('todayMinutes').textContent = state.todayFocusMin;
-      alert(`🎉 专注结束！\n本次时长：${fmt(elapsed)}`);
+      alert('🎉 专注结束！\n本次时长：' + fmt(elapsed));
     }
     state.timers[name] = 0;
     document.getElementById(name+'Timer').textContent = '00:00:00';
-    const startBtn = document.querySelector(`#page-timer .timer-start`);
+    var startBtn = document.querySelector('#page-timer .timer-start');
     if (startBtn) { startBtn.textContent = '开始专注'; startBtn.style.opacity = '1'; }
+  }
+
+  // 绑定计时器按钮（双保险）
+  var timerStart = document.getElementById('timerStartBtn');
+  var timerStop = document.getElementById('timerStopBtn');
+  if (timerStart) {
+    timerStart.onclick = function() { startTimer('focus'); };
+    timerStart.addEventListener('touchend', function(e) { e.preventDefault(); startTimer('focus'); });
+  }
+  if (timerStop) {
+    timerStop.onclick = function() { stopTimer('focus'); };
+    timerStop.addEventListener('touchend', function(e) { e.preventDefault(); stopTimer('focus'); });
   }
 
   // ----- 备忘录 -----
