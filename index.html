@@ -1,1 +1,1063 @@
-/workspace/creator-workstation.html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="学习工作台">
+<meta name="theme-color" content="#f5f4f9">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>学习工作台 - Hxxmolly</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --primary: #4a6fa5; --primary-light: #dce6f5; --bg: #f5f4f9; --card: #ffffff; --text: #2c2e3e; --text-sub: #8a8b9b; --border: #e8e8f0; --shadow: 0 2px 12px rgba(74,111,165,0.06); }
+
+  body {
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+    background: #edeef4; color: var(--text);
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; min-height: 100dvh; padding: 0;
+  }
+  .app-container {
+    width: 100vw; max-width: 430px; height: 100vh; height: 100dvh;
+    background: var(--bg); display: flex; flex-direction: column;
+    overflow: hidden; position: relative;
+  }
+  @media (min-width: 431px) {
+    .app-container { border-radius: 0; box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-width: 430px; }
+    body { padding: 12px; }
+  }
+
+  .app-header { padding: 18px 20px 12px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .app-header .greeting { font-size: 24px; font-weight: 700; color: var(--text); }
+  .app-header .subtitle { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+  .avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, #4a6fa5, #6b8fce);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 16px; font-weight: 600;
+  }
+
+  .body-row { flex: 1; display: flex; min-height: 0; }
+
+  .side-nav {
+    width: 60px; background: var(--card);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 6px 0; overflow-y: auto; flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+    position: relative; z-index: 2;
+  }
+  .side-nav::-webkit-scrollbar { display: none; }
+  .side-nav .nav-item {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    padding: 12px 4px; border: none; background: transparent;
+    cursor: pointer; transition: all 0.2s;
+    font-size: 10px; color: var(--text-sub); position: relative;
+    width: 100%; min-height: 52px;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    z-index: 5;
+    pointer-events: auto;
+  }
+  .side-nav .nav-item .nav-icon { font-size: 20px; transition: all 0.2s; }
+  .side-nav .nav-item .nav-label { font-weight: 500; line-height: 1; }
+  .side-nav .nav-item.active { color: var(--primary); }
+  .side-nav .nav-item.active .nav-icon { transform: translateY(-1px); }
+  .side-nav .nav-item.active::before {
+    content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 3px; height: 24px; background: var(--primary); border-radius: 0 3px 3px 0;
+    pointer-events: none;
+  }
+
+  .main-content { flex: 1; overflow-y: auto; padding: 12px 16px 8px; scroll-behavior: smooth; position: relative; z-index: 0; }
+  .main-content::-webkit-scrollbar { display: none; }
+
+  .page { display: none; animation: fadeIn 0.25s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .page-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .page-hint { font-size: 12px; color: var(--text-sub); margin-bottom: 14px; }
+
+  .card { background: var(--card); border-radius: 16px; padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
+  .card .meta { font-size: 11px; color: var(--text-sub); margin-bottom: 6px; }
+  .card .card-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .card .card-desc { font-size: 13px; color: #5a5b6d; line-height: 1.6; }
+
+  .task-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; background: var(--card);
+    border-radius: 14px; margin-bottom: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04); transition: all 0.2s; cursor: pointer;
+  }
+  .task-item:active { transform: scale(0.98); }
+  .task-item.done .task-text { text-decoration: line-through; color: #a8a9b5; }
+  .task-check {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid #d4d5e0; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.2s; font-size: 12px; color: transparent;
+  }
+  .task-item.done .task-check { background: var(--primary); border-color: var(--primary); color: white; }
+  .task-text { flex: 1; font-size: 15px; }
+  .task-del { color: #c8c8d8; font-size: 20px; flex-shrink: 0; padding: 4px; }
+
+  .add-bar { display: flex; gap: 8px; background: var(--card); border-radius: 14px; padding: 8px 12px; box-shadow: var(--shadow); margin-top: 4px; }
+  .add-bar input { flex: 1; border: none; outline: none; font-size: 14px; background: transparent; color: var(--text); }
+  .add-bar input::placeholder { color: #c0c1cb; }
+  .add-btn {
+    background: var(--primary); color: white; border: none;
+    padding: 8px 16px; border-radius: 10px; font-size: 13px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .add-btn:active { background: #3a5a8a; transform: scale(0.95); }
+
+  .timer-card { background: var(--card); border-radius: 20px; padding: 32px 24px; text-align: center; box-shadow: var(--shadow); margin-bottom: 16px; }
+  .timer-time {
+    font-size: 52px; font-weight: 200; color: var(--primary);
+    font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
+    letter-spacing: 3px; margin-bottom: 18px;
+  }
+  .timer-row { display: flex; gap: 10px; justify-content: center; }
+  .timer-btn { padding: 10px 24px; border-radius: 12px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .timer-btn:active { transform: scale(0.95); }
+  .timer-start { background: var(--primary); color: white; }
+  .timer-stop { background: #f0f2f8; color: var(--text); }
+
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat-box { background: var(--card); border-radius: 14px; padding: 16px 10px; text-align: center; box-shadow: var(--shadow); }
+  .stat-val { font-size: 26px; font-weight: 700; color: var(--primary); }
+  .stat-lbl { font-size: 11px; color: var(--text-sub); margin-top: 4px; }
+
+  .chip { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; margin-right: 4px; font-weight: 500; }
+  .chip-blue { background: #dce6f5; color: #4a6fa5; }
+  .chip-orange { background: #ffe8d4; color: #c87a3a; }
+  .chip-green { background: #d8f0d8; color: #3a8a3a; }
+  .chip-red { background: #fde0e0; color: #c83a3a; }
+
+  textarea {
+    width: 100%; min-height: 300px; padding: 16px; border: none; border-radius: 16px;
+    font-family: inherit; font-size: 14px; resize: vertical; outline: none;
+    background: var(--card); box-shadow: var(--shadow); color: var(--text); line-height: 1.6;
+  }
+  textarea::placeholder { color: #c0c1cb; }
+
+  .section-label { font-size: 13px; font-weight: 700; color: var(--primary); margin: 18px 0 10px; text-transform: uppercase; letter-spacing: 1px; }
+
+  .countdown-row { display: flex; gap: 12px; margin-bottom: 16px; }
+  .countdown-box {
+    flex: 1; background: var(--card); border-radius: 16px;
+    padding: 18px 14px; text-align: center; box-shadow: var(--shadow);
+  }
+  .countdown-box .c-label { font-size: 12px; color: var(--text-sub); margin-bottom: 6px; }
+  .countdown-box .c-num { font-size: 36px; font-weight: 700; }
+  .countdown-box .c-unit { font-size: 13px; color: var(--text-sub); margin-top: 2px; }
+  .c-blue .c-num { color: #4a6fa5; }
+  .c-orange .c-num { color: #c87a3a; }
+
+  .progress-bar-bg { background: #e8e8f0; border-radius: 8px; height: 8px; margin: 8px 0; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 8px; transition: width 0.5s; }
+  .pb-blue { background: #4a6fa5; }
+  .pb-orange { background: #c87a3a; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; margin-left: 6px; vertical-align: middle; }
+  .badge-urgent { background: #fde0e0; color: #c83a3a; }
+
+  .phase-card {
+    background: var(--card); border-radius: 14px; padding: 14px 16px;
+    margin-bottom: 10px; box-shadow: var(--shadow);
+    border-left: 4px solid var(--primary);
+  }
+  .phase-card .phase-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .phase-card .phase-items { font-size: 12px; color: #5a5b6d; line-height: 1.8; }
+
+  /* 计划页新样式 */
+  .plan-banner {
+    background: linear-gradient(135deg, #4a6fa5 0%, #6b8fce 100%);
+    border-radius: 18px; padding: 20px; margin-bottom: 14px;
+    color: white; box-shadow: 0 4px 14px rgba(74,111,165,0.25);
+  }
+  .plan-banner .pb-greet { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .plan-banner .pb-date { font-size: 13px; opacity: 0.9; margin-bottom: 14px; }
+  .plan-banner .pb-stats { display: flex; gap: 12px; font-size: 12px; }
+  .plan-banner .pb-stats span { display: inline-flex; align-items: center; gap: 4px; opacity: 0.95; }
+
+  .countdown-mini {
+    background: var(--card); border-radius: 14px; padding: 12px;
+    box-shadow: var(--shadow); margin-bottom: 12px;
+    display: flex; gap: 10px;
+  }
+  .cdm-card {
+    flex: 1; padding: 8px 10px; border-radius: 10px;
+    background: linear-gradient(135deg, #f5f4f9 0%, #ffffff 100%);
+    border-left: 3px solid var(--primary);
+  }
+  .cdm-card.cet { border-left-color: #c87a3a; }
+  .cdm-card .cdm-label { font-size: 11px; color: var(--text-sub); margin-bottom: 4px; }
+  .cdm-card .cdm-num { font-size: 22px; font-weight: 700; color: var(--primary); line-height: 1; }
+  .cdm-card.cet .cdm-num { color: #c87a3a; }
+  .cdm-card .cdm-unit { font-size: 10px; color: var(--text-sub); margin-top: 2px; }
+
+  .stats-mini {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .sm-card {
+    background: var(--card); border-radius: 12px; padding: 12px 6px;
+    text-align: center; box-shadow: var(--shadow);
+  }
+  .sm-card .sm-val { font-size: 22px; font-weight: 700; color: var(--primary); }
+  .sm-card.streak .sm-val { color: #c87a3a; }
+  .sm-card .sm-lbl { font-size: 10px; color: var(--text-sub); margin-top: 2px; }
+
+  .date-nav {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--card); border-radius: 14px; padding: 8px;
+    box-shadow: var(--shadow); margin-bottom: 14px;
+  }
+  .date-nav button {
+    border: none; background: transparent; padding: 8px 14px;
+    border-radius: 8px; font-size: 13px; color: var(--text-sub); cursor: pointer;
+  }
+  .date-nav button:active { background: #f0f2f8; }
+  .date-nav .dn-today { font-size: 14px; font-weight: 600; color: var(--primary); }
+
+  .task-group { margin-bottom: 12px; }
+  .task-group-title {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    margin-bottom: 8px; padding-left: 4px;
+  }
+  .task-group-title .count { color: var(--primary); font-weight: 700; }
+  .sub-task {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; background: var(--card);
+    border-radius: 12px; margin-bottom: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .sub-task:active { transform: scale(0.98); }
+  .sub-task.done .st-text { text-decoration: line-through; color: #a8a9b5; }
+  .sub-task .st-check {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid #d4d5e0; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: transparent;
+  }
+  .sub-task.done .st-check { background: var(--primary); border-color: var(--primary); color: white; }
+  .sub-task .st-text { flex: 1; font-size: 14px; }
+  .sub-task .st-count { color: var(--text-sub); font-size: 12px; margin-right: 4px; }
+  .sub-task .st-del { color: #d4d5e0; font-size: 16px; padding: 2px 6px; }
+
+  /* 心情日记 */
+  .mood-card { background: var(--card); border-radius: 14px; padding: 14px; box-shadow: var(--shadow); margin-bottom: 12px; }
+  .mood-options { display: flex; gap: 8px; margin-bottom: 12px; }
+  .mood-options button {
+    flex: 1; padding: 10px 4px; border: 1px solid var(--border);
+    background: var(--card); border-radius: 10px; font-size: 22px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .mood-options button.selected { background: var(--primary-light); border-color: var(--primary); transform: scale(1.05); }
+
+  /* 理财 */
+  .finance-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .fs-card { background: var(--card); border-radius: 14px; padding: 14px 10px; text-align: center; box-shadow: var(--shadow); }
+  .fs-card .fs-val { font-size: 20px; font-weight: 700; }
+  .fs-card .fs-lbl { font-size: 10px; color: var(--text-sub); margin-top: 4px; }
+  .fs-card.income .fs-val { color: #3a8a3a; }
+  .fs-card.expense .fs-val { color: #c83a3a; }
+  .fs-card.saved .fs-val { color: var(--primary); }
+
+  .finance-list .fin-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; background: var(--card);
+    border-radius: 12px; margin-bottom: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .fin-item .fi-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .fin-item.expense .fi-icon { background: #fde0e0; }
+  .fin-item.income .fi-icon { background: #d8f0d8; }
+  .fin-item .fi-info { flex: 1; }
+  .fin-item .fi-cat { font-size: 14px; font-weight: 600; color: var(--text); }
+  .fin-item .fi-date { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+  .fin-item .fi-amount { font-size: 16px; font-weight: 700; }
+  .fin-item.expense .fi-amount { color: #c83a3a; }
+  .fin-item.income .fi-amount { color: #3a8a3a; }
+  .fin-item .fi-del { color: #d4d5e0; font-size: 16px; padding: 4px 8px; }
+
+  /* 健身 */
+  .fit-summary {
+    background: linear-gradient(135deg, #4a6fa5 0%, #6b8fce 100%);
+    border-radius: 18px; padding: 18px; margin-bottom: 14px;
+    color: white; box-shadow: 0 4px 14px rgba(74,111,165,0.25);
+  }
+  .fit-summary .fs-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .fit-summary .fs-sub { font-size: 13px; opacity: 0.9; }
+
+  .fit-group { margin-bottom: 14px; }
+  .fit-group-header {
+    font-size: 14px; font-weight: 700; color: var(--text);
+    margin-bottom: 8px; padding: 6px 10px;
+    border-left: 4px solid var(--primary);
+    background: var(--card); border-radius: 8px;
+  }
+  .fit-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 14px; background: var(--card);
+    border-radius: 10px; margin-bottom: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .fit-item:active { transform: scale(0.98); }
+  .fit-item.done .fi-name { text-decoration: line-through; color: #a8a9b5; }
+  .fit-item .fi-check {
+    width: 18px; height: 18px; border-radius: 4px;
+    border: 2px solid #d4d5e0; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: transparent;
+  }
+  .fit-item.done .fi-check { background: var(--primary); border-color: var(--primary); color: white; }
+  .fit-item .fi-name { flex: 1; font-size: 13px; }
+  .fit-item .fi-note { font-size: 10px; color: var(--text-sub); margin-top: 2px; }
+
+  .bottom-nav { display: none; }  /* replaced by side-nav */
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <div class="app-header">
+    <div>
+      <div class="greeting">Hxxmolly</div>
+      <div class="subtitle">大二 · 备考进行中 · v11</div>
+    </div>
+    <div class="avatar">H</div>
+  </div>
+
+  <div class="body-row">
+
+  <nav class="side-nav">
+    <button class="nav-item active" data-page="plan" onclick="switchTab('plan')"><span class="nav-icon">📋</span><span class="nav-label">计划</span></button>
+    <button class="nav-item" data-page="overview" onclick="switchTab('overview')"><span class="nav-icon">📊</span><span class="nav-label">总览</span></button>
+    <button class="nav-item" data-page="wps" onclick="switchTab('wps')"><span class="nav-icon">💻</span><span class="nav-label">WPS</span></button>
+    <button class="nav-item" data-page="cet" onclick="switchTab('cet')"><span class="nav-icon">🌐</span><span class="nav-label">六级</span></button>
+    <button class="nav-item" data-page="note" onclick="switchTab('note')"><span class="nav-icon">📝</span><span class="nav-label">笔记</span></button>
+    <button class="nav-item" data-page="mood" onclick="switchTab('mood')"><span class="nav-icon">📔</span><span class="nav-label">心情</span></button>
+    <button class="nav-item" data-page="finance" onclick="switchTab('finance')"><span class="nav-icon">💰</span><span class="nav-label">理财</span></button>
+    <button class="nav-item" data-page="fitness" onclick="switchTab('fitness')"><span class="nav-icon">💪</span><span class="nav-label">健身</span></button>
+    <button class="nav-item" data-page="timer" onclick="switchTab('timer')"><span class="nav-icon">⏱️</span><span class="nav-label">计时</span></button>
+    <button class="nav-item" data-page="review" onclick="switchTab('review')"><span class="nav-icon">📈</span><span class="nav-label">复盘</span></button>
+  </nav>
+
+  <div class="main-content" id="mainContent">
+    <!-- ===== Tab 1: 每日计划 ===== -->
+    <div class="page active" id="page-plan">
+      <!-- 欢迎横幅 -->
+      <div class="plan-banner">
+        <div class="pb-greet" id="pbGreet">👋 你好，Hxxmolly！今天是</div>
+        <div class="pb-date" id="pbDate">7月27日 星期一</div>
+        <div class="pb-stats">
+          <span>📚 <span id="pbKnowledge">6</span> 条知识</span>
+          <span>⭐ <span id="pbEssence">0</span> 条精华</span>
+          <span>🔥 <span id="pbStreak">2</span> 连续天</span>
+        </div>
+      </div>
+
+      <!-- 备考倒计时 -->
+      <div class="countdown-mini">
+        <div class="cdm-card">
+          <div class="cdm-label">💻 WPS二级</div>
+          <div class="cdm-num" id="planWpsDays">55</div>
+          <div class="cdm-unit">天后考试</div>
+        </div>
+        <div class="cdm-card cet">
+          <div class="cdm-label">🌐 英语六级</div>
+          <div class="cdm-num" id="planCetDays">138</div>
+          <div class="cdm-unit">天后考试</div>
+        </div>
+      </div>
+
+      <!-- 今日统计 -->
+      <div class="stats-mini">
+        <div class="sm-card"><div class="sm-val" id="smPending">5</div><div class="sm-lbl">待完成</div></div>
+        <div class="sm-card"><div class="sm-val" id="smDone">0</div><div class="sm-lbl">已完成</div></div>
+        <div class="sm-card streak"><div class="sm-val" id="smRate">0%</div><div class="sm-lbl">完成率</div></div>
+      </div>
+
+      <!-- 日期切换 -->
+      <div class="date-nav">
+        <button onclick="changeDate(-1)">‹ 前一天</button>
+        <span class="dn-today" id="dnToday">📅 7月27日</span>
+        <button onclick="changeDate(1)">后一天 ›</button>
+      </div>
+
+      <!-- 每日任务分组 -->
+      <div class="task-group">
+        <div class="task-group-title">📌 每日必做 <span class="count" id="planTotal">×5</span></div>
+        <div id="planTaskList"></div>
+      </div>
+
+      <div class="add-bar">
+        <input type="text" id="taskInput" placeholder="添加新任务...">
+        <button class="add-btn" onclick="addTask()">+ 添加</button>
+      </div>
+    </div>
+
+    <!-- ===== Tab 2: 备考总览 ===== -->
+    <div class="page" id="page-overview">
+      <div class="page-title">📊 备考总览</div>
+      <div class="page-hint" id="hint2">保持节奏，稳扎稳打</div>
+
+      <div class="countdown-row">
+        <div class="countdown-box c-blue">
+          <div class="c-label">💻 计算机二级WPS</div>
+          <div class="c-num" id="ovWpsDays">55</div>
+          <div class="c-unit">天 · 8月起备考 9月考试</div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill pb-blue" id="ovWpsBar" style="width:5%"></div></div>
+          <div style="font-size:11px;color:var(--text-sub);margin-top:4px">进度 <span id="ovWpsPct">5%</span></div>
+        </div>
+        <div class="countdown-box c-orange">
+          <div class="c-label">🌐 英语六级</div>
+          <div class="c-num" id="ovCetDays">138</div>
+          <div class="c-unit">天 · 9/4前只背单词</div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill pb-orange" id="ovCetBar" style="width:2%"></div></div>
+          <div style="font-size:11px;color:var(--text-sub);margin-top:4px">进度 <span id="ovCetPct">2%</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🎯 今日打卡</div>
+        <div class="card-desc">
+          💻 WPS操作题（8月起）<br>
+          📖 六级单词每日50个<br>
+          ⏱️ 专注学习（计时页面打卡）
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Tab 3: WPS二级 ===== -->
+    <div class="page" id="page-wps">
+      <div class="page-title">💻 WPS二级备考</div>
+      <div class="page-hint">9月考试 · 计算机二级WPS Office</div>
+
+      <div class="card">
+        <div class="card-title">📌 考试概况</div>
+        <div class="card-desc">
+          科目：WPS Office高级应用与设计<br>
+          题型：选择题(20分) + 操作题(80分)<br>
+          操作题：文字/表格/演示各一题<br>
+          通过分数线：60分
+        </div>
+      </div>
+
+      <div class="section-label">📅 三阶段备考计划（8月起）</div>
+
+      <div class="phase-card" style="border-left-color:#4a6fa5">
+        <div class="phase-title">阶段一：基础速学 <span class="badge badge-urgent">8/1-8/15</span></div>
+        <div class="phase-items">• WPS文字：样式、目录、页眉页脚、邮件合并<br>• WPS表格：公式函数(VLOOKUP/IF/SUMIF)、图表、数据透视表<br>• WPS演示：母版、动画、超链接<br>• 计算机基础：进制转换、网络基础、数据库概念</div>
+      </div>
+      <div class="phase-card" style="border-left-color:#6b8fce">
+        <div class="phase-title">阶段二：专项刷题 <span class="badge" style="background:#dce6f5;color:#4a6fa5">8/16-8/31</span></div>
+        <div class="phase-items">• 每天1套操作题真题，计时完成<br>• 选择题专项刷题库(每天30题)<br>• 错题整理，总结高频考点<br>• 薄弱模块针对性回练</div>
+      </div>
+      <div class="phase-card" style="border-left-color:#8faee0">
+        <div class="phase-title">阶段三：模拟冲刺 <span class="badge" style="background:#dce6f5;color:#4a6fa5">9/1-考前</span></div>
+        <div class="phase-items">• 每周3-4套全真模拟，严格计时<br>• 选择题+操作题交替练习<br>• 重点突破薄弱题型<br>• 考前一周回顾错题，保持手感</div>
+      </div>
+    </div>
+
+    <!-- ===== Tab 4: 英语六级 ===== -->
+    <div class="page" id="page-cet">
+      <div class="page-title">🌐 英语六级备考</div>
+      <div class="page-hint">12月考试 · CET-6 大学英语六级</div>
+
+      <div class="card">
+        <div class="card-title">📌 考试概况</div>
+        <div class="card-desc">
+          总分：710分（425分通过）<br>
+          听力 35%｜阅读 35%｜写作翻译 30%<br>
+          词汇量要求：~6000词
+        </div>
+      </div>
+
+      <div class="section-label">📅 四阶段备考计划</div>
+
+      <div class="phase-card" style="border-left-color:#c87a3a">
+        <div class="phase-title">阶段一：单词积累 <span class="badge badge-urgent">7/27-9/3</span></div>
+        <div class="phase-items">• 每天背50个六级核心词汇（APP+手写）<br>• 周末复习本周单词，做词汇自测<br>• 目标：9月前掌握3000+六级核心词<br>• ⚠️ 此阶段只背单词，暂不安排其他</div>
+      </div>
+      <div class="phase-card" style="border-left-color:#d4a070">
+        <div class="phase-title">阶段二：听力阅读基础 <span class="badge" style="background:#ffe8d4;color:#c87a3a">9/4-10/15</span></div>
+        <div class="phase-items">• 每天词汇保持50个<br>• 听力：每天VOA/BBC泛听30分钟 + 真题精听2篇<br>• 阅读：每周2套真题，逐句精读长难句<br>• 整理生词本和高频替换词<br>• 写作：每周1篇，看范文模仿结构</div>
+      </div>
+      <div class="phase-card" style="border-left-color:#d4a070">
+        <div class="phase-title">阶段三：写译专项 <span class="badge" style="background:#ffe8d4;color:#c87a3a">10/16-11/15</span></div>
+        <div class="phase-items">• 词汇保持每日30个（重在巩固）<br>• 听力：真题精听+影子跟读（每日1篇）<br>• 阅读：长篇匹配提速训练<br>• 写作：每周2篇，套用万能模板<br>• 翻译：每天1段中英互译，积累专有表达</div>
+      </div>
+      <div class="phase-card" style="border-left-color:#e0b898">
+        <div class="phase-title">阶段四：真题冲刺 <span class="badge" style="background:#ffe8d4;color:#c87a3a">11/16-考前</span></div>
+        <div class="phase-items">• 近5年真题全真模拟（每周3套，严格计时）<br>• 背诵写作万能模板+范文5篇<br>• 错题整理，查漏补缺<br>• 听力每日1套模拟训练<br>• 考前1周调整作息，保持手感</div>
+      </div>
+    </div>
+
+    <!-- ===== Tab 5: 学习笔记 ===== -->
+    <div class="page" id="page-note">
+      <div class="page-title">📝 学习笔记</div>
+      <div class="page-hint">快速记录知识点和心得</div>
+      <div id="notesList"></div>
+      <div class="add-bar">
+        <input type="text" id="noteInput" placeholder="记一条学习笔记...">
+        <button class="add-btn" onclick="addNote()">+ 记录</button>
+      </div>
+    </div>
+
+    <!-- ===== Tab: 心情日记 ===== -->
+    <div class="page" id="page-mood">
+      <div class="page-title">📔 心情日记</div>
+      <div class="page-hint">记录今天的情绪与感受</div>
+
+      <div class="mood-card">
+        <div style="font-size:13px;color:var(--text-sub);margin-bottom:10px">今天感觉如何？</div>
+        <div class="mood-options" id="moodOptions">
+          <button data-mood="happy">😊</button>
+          <button data-mood="calm">😌</button>
+          <button data-mood="tired">😴</button>
+          <button data-mood="sad">😢</button>
+          <button data-mood="angry">😠</button>
+        </div>
+      </div>
+
+      <textarea id="moodArea" placeholder="今天发生了什么？学到了什么？心情怎样？..."></textarea>
+      <button class="timer-btn timer-start" onclick="saveMood()" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存心情</button>
+
+      <div class="section-label">历史记录</div>
+      <div id="moodHistory"></div>
+    </div>
+
+    <!-- ===== Tab: 理财 ===== -->
+    <div class="page" id="page-finance">
+      <div class="page-title">💰 理财记账</div>
+      <div class="page-hint">记录每一笔，攒下每一分</div>
+
+      <div class="finance-summary">
+        <div class="fs-card income"><div class="fs-val" id="finIncome">0</div><div class="fs-lbl">本月收入</div></div>
+        <div class="fs-card expense"><div class="fs-val" id="finExpense">0</div><div class="fs-lbl">本月支出</div></div>
+        <div class="fs-card saved"><div class="fs-val" id="finSaved">0</div><div class="fs-lbl">本月结余</div></div>
+      </div>
+
+      <div class="mood-card">
+        <div style="font-size:13px;color:var(--text-sub);margin-bottom:8px">💡 记录一笔</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button onclick="setFinType('expense')" id="finTypeExpense" class="add-btn" style="flex:1;background:#c83a3a">支出</button>
+          <button onclick="setFinType('income')" id="finTypeIncome" class="add-btn" style="flex:1;background:#3a8a3a">收入</button>
+        </div>
+        <div class="add-bar" style="margin-bottom:8px">
+          <input type="number" id="finAmount" placeholder="金额" step="0.01">
+        </div>
+        <div class="add-bar">
+          <input type="text" id="finNote" placeholder="备注（如：午餐、奶茶）">
+          <button class="add-btn" onclick="addFinance()">+ 记</button>
+        </div>
+      </div>
+
+      <div class="section-label">本月明细</div>
+      <div class="finance-list" id="financeList"></div>
+    </div>
+
+    <!-- ===== Tab: 健身 ===== -->
+    <div class="page" id="page-fitness">
+      <div class="page-title">💪 健身打卡</div>
+      <div class="page-hint">坚持训练，雕刻更好的自己</div>
+
+      <div class="fit-summary">
+        <div class="fs-title">🔥 今日完成 <span id="fitDone">0</span>/<span id="fitTotal">15</span></div>
+        <div class="fs-sub">连续打卡 <span id="fitStreak">0</span> 天 · 本周训练 <span id="fitWeek">0</span> 次</div>
+      </div>
+
+      <!-- 背 -->
+      <div class="fit-group">
+        <div class="fit-group-header">🔵 背（5个动作）</div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">辅助引体向上</div></div></div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">反向飞鸟</div></div></div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">高位下拉</div></div></div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">坐姿划船</div></div></div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">直臂下压</div></div></div>
+      </div>
+
+      <!-- 肩 -->
+      <div class="fit-group">
+        <div class="fit-group-header">🟢 肩（3个动作）</div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">绳索面拉</div></div></div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">固定器械推肩</div><div class="fi-note">肘关节内收，把手和肩平齐</div></div></div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">反向飞鸟</div></div></div>
+      </div>
+
+      <!-- 胸 -->
+      <div class="fit-group">
+        <div class="fit-group-header">🔴 胸（3个动作）</div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">正向飞鸟</div><div class="fi-note">肘关节平行</div></div></div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">器械上斜推胸</div><div class="fi-note">把手和上胸平行，肘关节朝下</div></div></div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">器械平板推胸</div></div></div>
+      </div>
+
+      <!-- 腿 -->
+      <div class="fit-group">
+        <div class="fit-group-header">🟡 腿（4个动作）</div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">史密斯深蹲</div></div></div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">坐姿髋外展</div><div class="fi-note">腰背挺直，身体向前略微俯身，双手叉腰</div></div></div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">坐姿髋内收</div><div class="fi-note">身体不要靠在坐垫上，脚尖勾起，身体向前略微俯身</div></div></div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">倒蹬机</div></div></div>
+      </div>
+
+      <!-- 有氧 -->
+      <div class="fit-group">
+        <div class="fit-group-header">🏃 有氧（1个动作）</div>
+        <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">爬坡</div><div class="fi-note">跑步机坡度12-15，速度4-5，30分钟</div></div></div>
+      </div>
+    </div>
+
+    <!-- ===== Tab 6: 学习计时 ===== -->
+    <div class="page" id="page-timer">
+      <div class="page-title">⏱️ 专注计时</div>
+      <div class="timer-card">
+        <div class="timer-time" id="focusTimer">00:00:00</div>
+        <div class="timer-row">
+          <button class="timer-btn timer-start" onclick="startTimer('focus')">开始专注</button>
+          <button class="timer-btn timer-stop" onclick="stopTimer('focus')">结束</button>
+        </div>
+      </div>
+      <div class="section-label">今日专注统计</div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-val" id="todaySessions">0</div><div class="stat-lbl">专注次数</div></div>
+        <div class="stat-box"><div class="stat-val" id="todayMinutes">0</div><div class="stat-lbl">累计分钟</div></div>
+      </div>
+      <div class="card"><div class="card-title">💡 番茄工作法</div><div class="card-desc">专注25分钟 → 休息5分钟 → 每4个循环休息15分钟。试试看，效率倍增！</div></div>
+    </div>
+
+    <!-- ===== Tab 7: 学习复盘 ===== -->
+    <div class="page" id="page-review">
+      <div class="page-title">📈 学习复盘</div>
+      <div class="page-hint">复盘是进步最快的路径</div>
+
+      <div class="card">
+        <div class="card-title">📊 本周数据</div>
+        <div class="stats-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="stat-box"><div class="stat-val">--</div><div class="stat-lbl">学习天数</div></div>
+          <div class="stat-box"><div class="stat-val">--</div><div class="stat-lbl">WPS刷题</div></div>
+          <div class="stat-box"><div class="stat-val">--</div><div class="stat-lbl">六级单词</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🎯 本周目标</div>
+        <div class="card-desc">
+          <div class="task-item"><div class="task-check"></div><div class="task-text">每天学习≥4小时</div></div>
+          <div class="task-item"><div class="task-check"></div><div class="task-text">WPS操作题完成5套</div></div>
+          <div class="task-item"><div class="task-check"></div><div class="task-text">六级单词背350个</div></div>
+          <div class="task-item"><div class="task-check"></div><div class="task-text">听力练习完成5篇</div></div>
+        </div>
+      </div>
+
+      <textarea id="reviewArea" placeholder="写下本周学习总结：&#10;1. 完成了哪些目标？&#10;2. 遇到了什么困难？&#10;3. 下周如何改进？"></textarea>
+      <button class="timer-btn timer-start" onclick="saveReview()" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存复盘</button>
+    </div>
+
+    <!-- ===== Tab 8: 备忘录 ===== -->
+    <div class="page" id="page-memo">
+      <div class="page-title">📋 备忘录</div>
+      <div class="page-hint">杂事备忘，解放大脑</div>
+      <textarea id="memoArea" placeholder="记录杂事、待办、提醒..."></textarea>
+      <button class="timer-btn timer-start" onclick="saveMemo()" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存备忘录</button>
+    </div>
+  </div>
+
+  </div><!-- .body-row -->
+</div><!-- .app-container -->
+
+<script>
+  // ====== 版本 V11 ======
+  function switchTab(page) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelector('[data-page="' + page + '"]').classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    var el = document.getElementById('page-' + page);
+    if (el) el.classList.add('active');
+    document.getElementById('mainContent').scrollTop = 0;
+  }
+
+  // addTask 和 renderPlanTasks 提前定义，避免依赖问题
+  const taskState = [
+    {text:'背诵六级单词50个', done:false, count:1},
+    {text:'WPS文字操作题1套（样式+目录）', done:false, count:1},
+    {text:'听力练习1篇（VOA慢速）', done:false, count:1},
+    {text:'阅读真题精读1篇', done:false, count:1},
+    {text:'WPS表格函数练习（VLOOKUP）', done:false, count:1}
+  ];
+
+  function addTask() {
+    var inp = document.getElementById('taskInput');
+    var v = inp.value.trim();
+    if (!v) return;
+    taskState.push({text:v, done:false, count:1});
+    inp.value = '';
+    renderPlanTasks();
+  }
+
+  function renderPlanTasks() {
+    var list = document.getElementById('planTaskList');
+    if (!list) return;
+    list.innerHTML = '';
+    taskState.forEach(function(t, i) {
+      var div = document.createElement('div');
+      div.className = 'sub-task' + (t.done ? ' done' : '');
+      div.innerHTML = '<div class="st-check">' + (t.done ? '✓' : '') + '</div><span class="st-text">' + t.text + '</span><span class="st-count">×' + (t.count || 1) + '</span><span class="st-del">×</span>';
+      div.querySelector('.st-check').onclick = div.querySelector('.st-text').onclick = function() {
+        taskState[i].done = !taskState[i].done;
+        renderPlanTasks();
+        updatePlanStats();
+      };
+      div.querySelector('.st-del').onclick = function(e) {
+        e.stopPropagation();
+        taskState.splice(i, 1);
+        renderPlanTasks();
+        updatePlanStats();
+      };
+      list.appendChild(div);
+    });
+    updatePlanStats();
+  }
+
+  function updatePlanStats() {
+    var total = taskState.length;
+    var done = taskState.filter(function(t) { return t.done; }).length;
+    var pending = total - done;
+    var rate = total ? Math.round(done / total * 100) : 0;
+    var smPending = document.getElementById('smPending');
+    var smDone = document.getElementById('smDone');
+    var smRate = document.getElementById('smRate');
+    var planTotal = document.getElementById('planTotal');
+    if (smPending) smPending.textContent = pending;
+    if (smDone) smDone.textContent = done;
+    if (smRate) smRate.textContent = rate + '%';
+    if (planTotal) planTotal.textContent = '×' + total;
+  }
+
+  // ----- 日期与倒计时 -----
+  const today = new Date();
+  const wpsExam = new Date(2026, 8, 20);   // 9月20日考试
+  const cetExam = new Date(2026, 11, 13);   // 12月13日考试
+  const wpsStart = new Date(2026, 7, 1);
+  const cetStart = new Date(2026, 8, 4);
+
+  const wpsLeft = Math.max(0, Math.ceil((wpsExam - today) / 86400000));
+  const cetLeft = Math.max(0, Math.ceil((cetExam - today) / 86400000));
+
+  const wkMap = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  const todayStr = `${today.getMonth()+1}月${today.getDate()}日 ${wkMap[today.getDay()]}`;
+
+  // 设置计划页日期
+  document.getElementById('pbDate').textContent = todayStr;
+  document.getElementById('dnToday').textContent = '📅 ' + todayStr;
+  document.getElementById('planWpsDays').textContent = wpsLeft;
+  document.getElementById('planCetDays').textContent = cetLeft;
+
+  // 总览页倒计时
+  document.getElementById('ovWpsDays').textContent = wpsLeft;
+  document.getElementById('ovCetDays').textContent = cetLeft;
+  const wpsTotalDays = Math.ceil((wpsExam - wpsStart) / 86400000);
+  const cetTotalDays = Math.ceil((cetExam - cetStart) / 86400000);
+  const wpsElapsedDays = Math.max(0, Math.ceil((today - wpsStart) / 86400000));
+  const cetElapsedDays = Math.max(0, Math.ceil((today - cetStart) / 86400000));
+  const ovWpsPct = Math.min(100, Math.round(wpsElapsedDays / wpsTotalDays * 100));
+  const ovCetPct = Math.min(100, Math.round(cetElapsedDays / cetTotalDays * 100));
+  document.getElementById('ovWpsBar').style.width = ovWpsPct + '%';
+  document.getElementById('ovCetBar').style.width = ovCetPct + '%';
+  document.getElementById('ovWpsPct').textContent = ovWpsPct + '%';
+  document.getElementById('ovCetPct').textContent = ovCetPct + '%';
+
+  // 初始化侧边栏日期
+  state.planDate = today;
+
+  // ----- 内存状态 -----
+  const state = {
+    notes: ['VLOOKUP第四个参数：FALSE=精确匹配，TRUE=近似匹配','六级作文万能开头：With the rapid development of...','进制转换口诀：除基取余，逆序排列'],
+    timers: {focus:0},
+    intervals: {focus:null},
+    todayFocusMin: 0,
+    todaySessions: 0,
+    streakDays: 2,
+    knowledgeCount: 6,
+    essenceCount: 0
+  };
+
+  // ----- 底部导航提示 -----
+  const hints = {
+    plan:'完成一项打勾，进度一目了然',
+    overview:'保持节奏，稳扎稳打',
+    wps:'9月考试，计算机二级WPS Office',
+    cet:'12月考试，大学英语六级 CET-6',
+    note:'快速记录知识点和心得',
+    mood:'记录每一天的情绪与感悟',
+    timer:'番茄工作法：25分钟专注+5分钟休息',
+    review:'复盘是进步最快的路径'
+  };
+
+  // ----- 日期切换 -----
+  function changeDate(offset) {
+    // 仅展示效果，实际任务还是当天的
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    document.getElementById('dnToday').textContent = '📅 ' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+  }
+
+  // ----- 笔记 -----
+  function renderNotes() {
+    const list = document.getElementById('notesList');
+    list.innerHTML = '';
+    state.notes.forEach((note, i) => {
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML = `<div class="card-title">笔记 #${i+1}</div><div class="card-desc">${note}</div><button class="chip" style="float:right;margin-top:-16px;cursor:pointer;border:none;font-size:12px;background:#fde0e0;color:#c83a3a">删除</button>`;
+      div.querySelector('button').onclick = e => { e.stopPropagation(); state.notes.splice(i,1); renderNotes(); };
+      list.appendChild(div);
+    });
+  }
+  function addNote() {
+    const inp = document.getElementById('noteInput');
+    const v = inp.value.trim();
+    if (!v) return;
+    state.notes.unshift(v);
+    inp.value = '';
+    renderNotes();
+  }
+  document.getElementById('noteInput').addEventListener('keypress', e => { if (e.key==='Enter') addNote(); });
+
+  // ----- 心情日记 -----
+  let selectedMood = null;
+  document.querySelectorAll('#moodOptions button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#moodOptions button').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedMood = btn.dataset.mood;
+    });
+  });
+
+  const moodArea = document.getElementById('moodArea');
+  const moodHistory = [];
+  function saveMood() {
+    const text = moodArea.value.trim();
+    if (!text && !selectedMood) return alert('请选择心情或输入内容');
+    const entry = {
+      date: new Date().toLocaleString('zh-CN', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'}),
+      mood: selectedMood || 'calm',
+      moodIcon: {happy:'😊', calm:'😌', tired:'😴', sad:'😢', angry:'😠'}[selectedMood || 'calm'],
+      text
+    };
+    moodHistory.unshift(entry);
+    localStorage.setItem('ws_mood', JSON.stringify(moodHistory));
+    moodArea.value = '';
+    selectedMood = null;
+    document.querySelectorAll('#moodOptions button').forEach(b => b.classList.remove('selected'));
+    renderMoodHistory();
+    alert('✓ 心情日记已保存');
+  }
+  function renderMoodHistory() {
+    const list = document.getElementById('moodHistory');
+    if (!moodHistory.length) { list.innerHTML = '<div style="text-align:center;color:var(--text-sub);padding:20px;font-size:13px">还没有记录</div>'; return; }
+    list.innerHTML = '';
+    moodHistory.forEach((m, i) => {
+      const div = document.createElement('div');
+      div.className = 'mood-card';
+      div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:20px">${m.moodIcon}</span><span style="font-size:11px;color:var(--text-sub)">${m.date}</span></div><div style="font-size:13px;color:var(--text);line-height:1.5">${m.text || '(无内容)'}</div>`;
+      list.appendChild(div);
+    });
+  }
+  // 加载历史
+  const savedMoods = localStorage.getItem('ws_mood');
+  if (savedMoods) {
+    try {
+      const arr = JSON.parse(savedMoods);
+      arr.forEach(m => moodHistory.push(m));
+    } catch(e) {}
+  }
+  renderMoodHistory();
+
+  // ----- 理财记账 -----
+  let financeType = 'expense';
+  setFinType('expense');
+  function setFinType(t) {
+    financeType = t;
+    document.getElementById('finTypeExpense').style.opacity = (t==='expense')?'1':'0.5';
+    document.getElementById('finTypeIncome').style.opacity = (t==='income')?'1':'0.5';
+  }
+
+  const financeList = [];
+  function addFinance() {
+    const amt = parseFloat(document.getElementById('finAmount').value);
+    const note = document.getElementById('finNote').value.trim() || (financeType==='expense'?'其他支出':'其他收入');
+    if (!amt || amt <= 0) return alert('请输入有效金额');
+    const date = new Date().toLocaleDateString('zh-CN', {month:'numeric', day:'numeric'});
+    financeList.unshift({type: financeType, amount: amt, note, date, ts: Date.now()});
+    localStorage.setItem('ws_finance', JSON.stringify(financeList));
+    document.getElementById('finAmount').value = '';
+    document.getElementById('finNote').value = '';
+    renderFinance();
+  }
+  function deleteFinance(i) {
+    financeList.splice(i,1);
+    localStorage.setItem('ws_finance', JSON.stringify(financeList));
+    renderFinance();
+  }
+  function renderFinance() {
+    // 本月统计
+    const now = new Date();
+    const thisMonth = now.getMonth();
+    const thisYear = now.getFullYear();
+    let income = 0, expense = 0;
+    financeList.forEach(f => {
+      const d = new Date(f.ts);
+      if (d.getMonth() === thisMonth && d.getFullYear() === thisYear) {
+        if (f.type === 'income') income += f.amount;
+        else expense += f.amount;
+      }
+    });
+    document.getElementById('finIncome').textContent = '¥' + income.toFixed(0);
+    document.getElementById('finExpense').textContent = '¥' + expense.toFixed(0);
+    document.getElementById('finSaved').textContent = '¥' + (income - expense).toFixed(0);
+
+    const list = document.getElementById('financeList');
+    if (!financeList.length) { list.innerHTML = '<div style="text-align:center;color:var(--text-sub);padding:20px;font-size:13px">还没有记录</div>'; return; }
+    list.innerHTML = '';
+    financeList.forEach((f, i) => {
+      const div = document.createElement('div');
+      div.className = 'fin-item ' + f.type;
+      const icon = f.type === 'expense' ? '💸' : '💰';
+      const sign = f.type === 'expense' ? '-' : '+';
+      div.innerHTML = `<div class="fi-icon">${icon}</div><div class="fi-info"><div class="fi-cat">${f.note}</div><div class="fi-date">${f.date}</div></div><div class="fi-amount">${sign}¥${f.amount.toFixed(2)}</div><div class="fi-del" data-i="${i}">×</div>`;
+      div.querySelector('.fi-del').onclick = e => { e.stopPropagation(); deleteFinance(+e.target.dataset.i); };
+      list.appendChild(div);
+    });
+  }
+  const savedFinance = localStorage.getItem('ws_finance');
+  if (savedFinance) {
+    try { JSON.parse(savedFinance).forEach(f => financeList.push(f)); } catch(e) {}
+  }
+  renderFinance();
+
+  // ----- 健身打卡 -----
+  const fitStreakEl = document.getElementById('fitStreak');
+  const fitWeekEl = document.getElementById('fitWeek');
+  // 加载打卡状态
+  const fitState = JSON.parse(localStorage.getItem('ws_fit') || '{}');
+  let todayDone = fitState.today || 0;
+  document.getElementById('fitDone').textContent = todayDone;
+  document.getElementById('fitTotal').textContent = document.querySelectorAll('#page-fitness .fit-item').length;
+  fitStreakEl.textContent = fitState.streak || 0;
+  fitWeekEl.textContent = fitState.week || 0;
+
+  // 检查是否需要重置今日打卡
+  const fitLastDate = fitState.date || '';
+  const todayStrShort = new Date().toISOString().slice(0,10);
+  if (fitLastDate !== todayStrShort) {
+    todayDone = 0;
+    document.getElementById('fitDone').textContent = '0';
+  }
+
+  document.querySelectorAll('#page-fitness .fit-item').forEach(item => {
+    item.addEventListener('click', function() {
+      this.classList.toggle('done');
+      this.querySelector('.fi-check').textContent = this.classList.contains('done') ? '✓' : '';
+      // 重新计算今日完成数
+      const doneCount = document.querySelectorAll('#page-fitness .fit-item.done').length;
+      document.getElementById('fitDone').textContent = doneCount;
+      // 保存状态
+      const states = [];
+      document.querySelectorAll('#page-fitness .fit-item').forEach(i => states.push(i.classList.contains('done')));
+      localStorage.setItem('ws_fit_today', JSON.stringify({date: todayStrShort, states}));
+    });
+  });
+  // 恢复今日状态
+  if (fitLastDate === todayStrShort) {
+    const todayFit = JSON.parse(localStorage.getItem('ws_fit_today') || '{}');
+    if (todayFit.states) {
+      document.querySelectorAll('#page-fitness .fit-item').forEach((item, idx) => {
+        if (todayFit.states[idx]) {
+          item.classList.add('done');
+          item.querySelector('.fi-check').textContent = '✓';
+        }
+      });
+      document.getElementById('fitDone').textContent = todayFit.states.filter(Boolean).length;
+    }
+  }
+
+  // ----- 计时器 -----
+  function fmt(t) {
+    return Math.floor(t/3600).toString().padStart(2,'0') + ':' +
+           Math.floor((t%3600)/60).toString().padStart(2,'0') + ':' +
+           (t%60).toString().padStart(2,'0');
+  }
+  function startTimer(name) {
+    if (state.intervals[name]) return;
+    const startBtn = event.target;
+    startBtn.textContent = '专注中...';
+    startBtn.style.opacity = '0.7';
+    state.intervals[name] = setInterval(() => {
+      state.timers[name]++;
+      document.getElementById(name+'Timer').textContent = fmt(state.timers[name]);
+    }, 1000);
+  }
+  function stopTimer(name) {
+    clearInterval(state.intervals[name]);
+    state.intervals[name] = null;
+    const elapsed = state.timers[name];
+    if (elapsed > 0) {
+      state.todaySessions++;
+      state.todayFocusMin += Math.round(elapsed / 60);
+      document.getElementById('todaySessions').textContent = state.todaySessions;
+      document.getElementById('todayMinutes').textContent = state.todayFocusMin;
+      alert(`🎉 专注结束！\n本次时长：${fmt(elapsed)}`);
+    }
+    state.timers[name] = 0;
+    document.getElementById(name+'Timer').textContent = '00:00:00';
+    const startBtn = document.querySelector(`#page-timer .timer-start`);
+    if (startBtn) { startBtn.textContent = '开始专注'; startBtn.style.opacity = '1'; }
+  }
+
+  // ----- 备忘录 -----
+  const memoArea = document.getElementById('memoArea');
+  const savedMemo = localStorage.getItem('ws_memo');
+  if (savedMemo) memoArea.value = savedMemo;
+  function saveMemo() {
+    localStorage.setItem('ws_memo', memoArea.value);
+    alert('✓ 备忘录已保存');
+  }
+
+  // ----- 复盘 -----
+  const reviewArea = document.getElementById('reviewArea');
+  const savedReview = localStorage.getItem('ws_review');
+  if (savedReview) reviewArea.value = savedReview;
+  function saveReview() {
+    localStorage.setItem('ws_review', reviewArea.value);
+    alert('✓ 复盘已保存');
+  }
+
+  // ----- Checkbox for review page -----
+  document.querySelectorAll('#page-review .task-item').forEach(item => {
+    item.addEventListener('click', function() {
+      this.classList.toggle('done');
+      this.querySelector('.task-check').textContent = this.classList.contains('done') ? '✓' : '';
+    });
+  });
+
+  // ----- 初始化渲染 -----
+  renderPlanTasks();
+  renderNotes();
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(function(){}); }
+</script>
+</body>
+</html>
