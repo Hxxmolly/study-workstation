@@ -747,6 +747,87 @@
     if (planTotal) planTotal.textContent = '×' + total;
   }
 
+  // ----- 理财 -----
+  var financeType = 'expense';
+  var financeList = [];
+
+  function setFinType(t) {
+    financeType = t;
+    var e = document.getElementById('finTypeExpense');
+    var i = document.getElementById('finTypeIncome');
+    if (e) e.style.opacity = (t === 'expense') ? '1' : '0.5';
+    if (i) i.style.opacity = (t === 'income') ? '1' : '0.5';
+  }
+
+  function addFinance() {
+    var amt = parseFloat(document.getElementById('finAmount').value);
+    var noteEl = document.getElementById('finNote');
+    var note = noteEl ? noteEl.value.trim() : '';
+    if (!note) note = (financeType === 'expense' ? '其他支出' : '其他收入');
+    if (!amt || amt <= 0) return alert('请输入有效金额');
+    var d = new Date();
+    var dateStr = (d.getMonth() + 1) + '月' + d.getDate() + '日';
+    financeList.unshift({ type: financeType, amount: amt, note: note, date: dateStr, ts: d.getTime() });
+    try { localStorage.setItem('ws_finance', JSON.stringify(financeList)); } catch(e) {}
+    document.getElementById('finAmount').value = '';
+    if (noteEl) noteEl.value = '';
+    renderFinance();
+  }
+
+  function deleteFinance(i) {
+    financeList.splice(i, 1);
+    try { localStorage.setItem('ws_finance', JSON.stringify(financeList)); } catch(e) {}
+    renderFinance();
+  }
+
+  function renderFinance() {
+    var now = new Date();
+    var thisMonth = now.getMonth();
+    var thisYear = now.getFullYear();
+    var income = 0, expense = 0;
+    financeList.forEach(function(f) {
+      var d = new Date(f.ts);
+      if (d.getMonth() === thisMonth && d.getFullYear() === thisYear) {
+        if (f.type === 'income') income += f.amount;
+        else expense += f.amount;
+      }
+    });
+    var fiIn = document.getElementById('finIncome');
+    var fiEx = document.getElementById('finExpense');
+    var fiSv = document.getElementById('finSaved');
+    if (fiIn) fiIn.textContent = '¥' + income.toFixed(0);
+    if (fiEx) fiEx.textContent = '¥' + expense.toFixed(0);
+    if (fiSv) fiSv.textContent = '¥' + (income - expense).toFixed(0);
+
+    var list = document.getElementById('financeList');
+    if (!list) return;
+    if (!financeList.length) { list.innerHTML = '<div style="text-align:center;color:var(--text-sub);padding:20px;font-size:13px">还没有记录</div>'; return; }
+    list.innerHTML = '';
+    financeList.forEach(function(f, i) {
+      var div = document.createElement('div');
+      div.className = 'fin-item ' + f.type;
+      var icon = f.type === 'expense' ? '💸' : '💰';
+      var sign = f.type === 'expense' ? '-' : '+';
+      div.innerHTML = '<div class="fi-icon">' + icon + '</div><div class="fi-info"><div class="fi-cat">' + f.note + '</div><div class="fi-date">' + f.date + '</div></div><div class="fi-amount">' + sign + '¥' + f.amount.toFixed(2) + '</div><div class="fi-del" data-i="' + i + '">×</div>';
+      div.querySelector('.fi-del').onclick = function(e) { e.stopPropagation(); deleteFinance(i); };
+      list.appendChild(div);
+    });
+  }
+
+  // 加载历史
+  try {
+    var savedFinance = localStorage.getItem('ws_finance');
+    if (savedFinance) JSON.parse(savedFinance).forEach(function(f) { financeList.push(f); });
+  } catch(e) {}
+  setFinType('expense');
+  renderFinance();
+
+  // 绑定事件
+  var fe = document.getElementById('finTypeExpense');
+  var fi = document.getElementById('finTypeIncome');
+  if (fe) { fe.onclick = function() { setFinType('expense'); }; fe.addEventListener('touchend', function(e) { e.preventDefault(); setFinType('expense'); }); }
+  if (fi) { fi.onclick = function() { setFinType('income'); }; fi.addEventListener('touchend', function(e) { e.preventDefault(); setFinType('income'); }); }
+
   // ----- 日期与倒计时 -----
   const today = new Date();
   const wpsExam = new Date(2026, 8, 20);   // 9月20日考试
@@ -838,13 +919,15 @@
   document.getElementById('noteInput').addEventListener('keypress', e => { if (e.key==='Enter') addNote(); });
 
   // ----- 心情日记 -----
-  let selectedMood = null;
-  document.querySelectorAll('#moodOptions button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#moodOptions button').forEach(b => b.classList.remove('selected'));
+  var selectedMood = null;
+  document.querySelectorAll('#moodOptions button').forEach(function(btn) {
+    var pick = function() {
+      document.querySelectorAll('#moodOptions button').forEach(function(b) { b.classList.remove('selected'); });
       btn.classList.add('selected');
       selectedMood = btn.dataset.mood;
-    });
+    };
+    btn.addEventListener('click', pick);
+    btn.addEventListener('touchend', function(e) { e.preventDefault(); pick(); });
   });
 
   const moodArea = document.getElementById('moodArea');
@@ -887,68 +970,6 @@
   }
   renderMoodHistory();
 
-  // ----- 理财记账 -----
-  let financeType = 'expense';
-  setFinType('expense');
-  function setFinType(t) {
-    financeType = t;
-    document.getElementById('finTypeExpense').style.opacity = (t==='expense')?'1':'0.5';
-    document.getElementById('finTypeIncome').style.opacity = (t==='income')?'1':'0.5';
-  }
-
-  const financeList = [];
-  function addFinance() {
-    const amt = parseFloat(document.getElementById('finAmount').value);
-    const note = document.getElementById('finNote').value.trim() || (financeType==='expense'?'其他支出':'其他收入');
-    if (!amt || amt <= 0) return alert('请输入有效金额');
-    const date = new Date().toLocaleDateString('zh-CN', {month:'numeric', day:'numeric'});
-    financeList.unshift({type: financeType, amount: amt, note, date, ts: Date.now()});
-    localStorage.setItem('ws_finance', JSON.stringify(financeList));
-    document.getElementById('finAmount').value = '';
-    document.getElementById('finNote').value = '';
-    renderFinance();
-  }
-  function deleteFinance(i) {
-    financeList.splice(i,1);
-    localStorage.setItem('ws_finance', JSON.stringify(financeList));
-    renderFinance();
-  }
-  function renderFinance() {
-    // 本月统计
-    const now = new Date();
-    const thisMonth = now.getMonth();
-    const thisYear = now.getFullYear();
-    let income = 0, expense = 0;
-    financeList.forEach(f => {
-      const d = new Date(f.ts);
-      if (d.getMonth() === thisMonth && d.getFullYear() === thisYear) {
-        if (f.type === 'income') income += f.amount;
-        else expense += f.amount;
-      }
-    });
-    document.getElementById('finIncome').textContent = '¥' + income.toFixed(0);
-    document.getElementById('finExpense').textContent = '¥' + expense.toFixed(0);
-    document.getElementById('finSaved').textContent = '¥' + (income - expense).toFixed(0);
-
-    const list = document.getElementById('financeList');
-    if (!financeList.length) { list.innerHTML = '<div style="text-align:center;color:var(--text-sub);padding:20px;font-size:13px">还没有记录</div>'; return; }
-    list.innerHTML = '';
-    financeList.forEach((f, i) => {
-      const div = document.createElement('div');
-      div.className = 'fin-item ' + f.type;
-      const icon = f.type === 'expense' ? '💸' : '💰';
-      const sign = f.type === 'expense' ? '-' : '+';
-      div.innerHTML = `<div class="fi-icon">${icon}</div><div class="fi-info"><div class="fi-cat">${f.note}</div><div class="fi-date">${f.date}</div></div><div class="fi-amount">${sign}¥${f.amount.toFixed(2)}</div><div class="fi-del" data-i="${i}">×</div>`;
-      div.querySelector('.fi-del').onclick = e => { e.stopPropagation(); deleteFinance(+e.target.dataset.i); };
-      list.appendChild(div);
-    });
-  }
-  const savedFinance = localStorage.getItem('ws_finance');
-  if (savedFinance) {
-    try { JSON.parse(savedFinance).forEach(f => financeList.push(f)); } catch(e) {}
-  }
-  renderFinance();
-
   // ----- 健身打卡 -----
   const fitStreakEl = document.getElementById('fitStreak');
   const fitWeekEl = document.getElementById('fitWeek');
@@ -969,17 +990,17 @@
   }
 
   document.querySelectorAll('#page-fitness .fit-item').forEach(item => {
-    item.addEventListener('click', function() {
-      this.classList.toggle('done');
-      this.querySelector('.fi-check').textContent = this.classList.contains('done') ? '✓' : '';
-      // 重新计算今日完成数
-      const doneCount = document.querySelectorAll('#page-fitness .fit-item.done').length;
+    const toggleFit = function() {
+      item.classList.toggle('done');
+      item.querySelector('.fi-check').textContent = item.classList.contains('done') ? '✓' : '';
+      var doneCount = document.querySelectorAll('#page-fitness .fit-item.done').length;
       document.getElementById('fitDone').textContent = doneCount;
-      // 保存状态
-      const states = [];
-      document.querySelectorAll('#page-fitness .fit-item').forEach(i => states.push(i.classList.contains('done')));
-      localStorage.setItem('ws_fit_today', JSON.stringify({date: todayStrShort, states}));
-    });
+      var states = [];
+      document.querySelectorAll('#page-fitness .fit-item').forEach(function(i) { states.push(i.classList.contains('done')); });
+      try { localStorage.setItem('ws_fit_today', JSON.stringify({date: todayStrShort, states})); } catch(e) {}
+    };
+    item.addEventListener('click', toggleFit);
+    item.addEventListener('touchend', function(e) { e.preventDefault(); toggleFit(); });
   });
   // 恢复今日状态
   if (fitLastDate === todayStrShort) {
