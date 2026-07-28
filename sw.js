@@ -1,4 +1,4 @@
-const CACHE_NAME = 'workstation-v8-zindex';
+const CACHE_NAME = 'workstation-v11-inline';
 const ASSETS = [
   '/',
   '/creator-workstation.html',
