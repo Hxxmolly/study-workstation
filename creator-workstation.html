@@ -391,9 +391,9 @@
 
       <!-- 日期切换 -->
       <div class="date-nav">
-        <button onclick="changeDate(-1)">‹ 前一天</button>
+        <button id="datePrev">‹ 前一天</button>
         <span class="dn-today" id="dnToday">📅 7月27日</span>
-        <button onclick="changeDate(1)">后一天 ›</button>
+        <button id="dateNext">后一天 ›</button>
       </div>
 
       <!-- 每日任务分组 -->
@@ -404,7 +404,7 @@
 
       <div class="add-bar">
         <input type="text" id="taskInput" placeholder="添加新任务...">
-        <button class="add-btn" onclick="addTask()">+ 添加</button>
+        <button class="add-btn" id="addTaskBtn">+ 添加</button>
       </div>
     </div>
 
@@ -512,7 +512,7 @@
       <div id="notesList"></div>
       <div class="add-bar">
         <input type="text" id="noteInput" placeholder="记一条学习笔记...">
-        <button class="add-btn" onclick="addNote()">+ 记录</button>
+        <button class="add-btn" id="addNoteBtn">+ 记录</button>
       </div>
     </div>
 
@@ -533,7 +533,7 @@
       </div>
 
       <textarea id="moodArea" placeholder="今天发生了什么？学到了什么？心情怎样？..."></textarea>
-      <button class="timer-btn timer-start" onclick="saveMood()" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存心情</button>
+      <button class="timer-btn timer-start" id="saveMoodBtn" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存心情</button>
 
       <div class="section-label">历史记录</div>
       <div id="moodHistory"></div>
@@ -553,15 +553,15 @@
       <div class="mood-card">
         <div style="font-size:13px;color:var(--text-sub);margin-bottom:8px">💡 记录一笔</div>
         <div style="display:flex;gap:8px;margin-bottom:8px">
-          <button onclick="setFinType('expense')" id="finTypeExpense" class="add-btn" style="flex:1;background:#c83a3a">支出</button>
-          <button onclick="setFinType('income')" id="finTypeIncome" class="add-btn" style="flex:1;background:#3a8a3a">收入</button>
+          <button id="finTypeExpense" class="add-btn" style="flex:1;background:#c83a3a">支出</button>
+          <button id="finTypeIncome" class="add-btn" style="flex:1;background:#3a8a3a">收入</button>
         </div>
         <div class="add-bar" style="margin-bottom:8px">
           <input type="number" id="finAmount" placeholder="金额" step="0.01">
         </div>
         <div class="add-bar">
           <input type="text" id="finNote" placeholder="备注（如：午餐、奶茶）">
-          <button class="add-btn" onclick="addFinance()">+ 记</button>
+          <button class="add-btn" id="addFinanceBtn">+ 记</button>
         </div>
       </div>
 
@@ -664,7 +664,7 @@
       </div>
 
       <textarea id="reviewArea" placeholder="写下本周学习总结：&#10;1. 完成了哪些目标？&#10;2. 遇到了什么困难？&#10;3. 下周如何改进？"></textarea>
-      <button class="timer-btn timer-start" onclick="saveReview()" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存复盘</button>
+      <button class="timer-btn timer-start" id="saveReviewBtn" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存复盘</button>
     </div>
 
     <!-- ===== Tab 8: 备忘录 ===== -->
@@ -672,7 +672,7 @@
       <div class="page-title">📋 备忘录</div>
       <div class="page-hint">杂事备忘，解放大脑</div>
       <textarea id="memoArea" placeholder="记录杂事、待办、提醒..."></textarea>
-      <button class="timer-btn timer-start" onclick="saveMemo()" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存备忘录</button>
+      <button class="timer-btn timer-start" id="saveMemoBtn" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存备忘录</button>
     </div>
   </div>
 
@@ -916,7 +916,7 @@
     inp.value = '';
     renderNotes();
   }
-  document.getElementById('noteInput').addEventListener('keypress', e => { if (e.key==='Enter') addNote(); });
+  // 输入框回车绑定（由 bindBtn 统一处理）
 
   // ----- 心情日记 -----
   var selectedMood = null;
@@ -1090,6 +1090,36 @@
   renderPlanTasks();
   renderNotes();
   if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(function(){}); }
+
+  // 通用按钮绑定函数（双事件 + 安全检查）
+  function bindBtn(id, fn) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.onclick = function(e) { e.preventDefault(); fn(el, e); };
+    el.addEventListener('touchend', function(e) { e.preventDefault(); fn(el, e); });
+  }
+
+  // 绑定所有按钮
+  bindBtn('timerStartBtn', function() { startTimer('focus'); });
+  bindBtn('timerStopBtn', function() { stopTimer('focus'); });
+  bindBtn('addTaskBtn', function() { addTask(); });
+  bindBtn('addNoteBtn', function() { addNote(); });
+  bindBtn('addFinanceBtn', function() { addFinance(); });
+  bindBtn('saveMoodBtn', function() { saveMood(); });
+  bindBtn('saveMemoBtn', function() { saveMemo(); });
+  bindBtn('saveReviewBtn', function() { saveReview(); });
+  bindBtn('finTypeExpense', function() { setFinType('expense'); });
+  bindBtn('finTypeIncome', function() { setFinType('income'); });
+  bindBtn('datePrev', function() { changeDate(-1); });
+  bindBtn('dateNext', function() { changeDate(1); });
+
+  // 输入框回车绑定
+  var taskInp = document.getElementById('taskInput');
+  if (taskInp) taskInp.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addTask(); } });
+  var noteInp = document.getElementById('noteInput');
+  if (noteInp) noteInp.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addNote(); } });
+  var finInp = document.getElementById('finAmount');
+  if (finInp) finInp.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addFinance(); } });
 </script>
 </body>
 </html>
