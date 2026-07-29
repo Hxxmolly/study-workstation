@@ -691,13 +691,34 @@
   }
 
   // addTask 和 renderPlanTasks 提前定义，避免依赖问题
-  const taskState = [
-    {text:'背诵六级单词50个', done:false, count:1},
-    {text:'WPS文字操作题1套（样式+目录）', done:false, count:1},
-    {text:'听力练习1篇（VOA慢速）', done:false, count:1},
-    {text:'阅读真题精读1篇', done:false, count:1},
-    {text:'WPS表格函数练习（VLOOKUP）', done:false, count:1}
-  ];
+  var taskState = [];
+  // 从 localStorage 恢复任务
+  try {
+    var savedTasks = localStorage.getItem('ws_tasks');
+    if (savedTasks) {
+      taskState = JSON.parse(savedTasks);
+    } else {
+      taskState = [
+        {text:'背诵六级单词50个', done:false, count:1},
+        {text:'WPS文字操作题1套（样式+目录）', done:false, count:1},
+        {text:'听力练习1篇（VOA慢速）', done:false, count:1},
+        {text:'阅读真题精读1篇', done:false, count:1},
+        {text:'WPS表格函数练习（VLOOKUP）', done:false, count:1}
+      ];
+    }
+  } catch(e) {
+    taskState = [
+      {text:'背诵六级单词50个', done:false, count:1},
+      {text:'WPS文字操作题1套（样式+目录）', done:false, count:1},
+      {text:'听力练习1篇（VOA慢速）', done:false, count:1},
+      {text:'阅读真题精读1篇', done:false, count:1},
+      {text:'WPS表格函数练习（VLOOKUP）', done:false, count:1}
+    ];
+  }
+
+  function saveTasks() {
+    try { localStorage.setItem('ws_tasks', JSON.stringify(taskState)); } catch(e) {}
+  }
 
   function addTask() {
     var inp = document.getElementById('taskInput');
@@ -705,6 +726,7 @@
     if (!v) return;
     taskState.push({text:v, done:false, count:1});
     inp.value = '';
+    saveTasks();
     renderPlanTasks();
   }
 
@@ -718,12 +740,14 @@
       div.innerHTML = '<div class="st-check">' + (t.done ? '✓' : '') + '</div><span class="st-text">' + t.text + '</span><span class="st-count">×' + (t.count || 1) + '</span><span class="st-del">×</span>';
       div.querySelector('.st-check').onclick = div.querySelector('.st-text').onclick = function() {
         taskState[i].done = !taskState[i].done;
+        saveTasks();
         renderPlanTasks();
         updatePlanStats();
       };
       div.querySelector('.st-del').onclick = function(e) {
         e.stopPropagation();
         taskState.splice(i, 1);
+        saveTasks();
         renderPlanTasks();
         updatePlanStats();
       };
