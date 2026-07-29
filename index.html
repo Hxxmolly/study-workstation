@@ -1696,6 +1696,19 @@
   if (noteInp) noteInp.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addNote(); } });
   var finInp = document.getElementById('finAmount');
   if (finInp) finInp.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addFinance(); } });
+
+  // 🔥 强制清除所有旧 Service Worker（解决缓存导致点击失效的根源）
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs) {
+      regs.forEach(function(reg) { reg.unregister(); });
+    });
+    // 同时清除所有缓存
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        names.forEach(function(name) { caches.delete(name); });
+      });
+    }
+  }
 </script>
 </body>
 </html>
