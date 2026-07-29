@@ -647,8 +647,8 @@
       <div class="mood-card">
         <div style="font-size:13px;color:var(--text-sub);margin-bottom:8px">💡 记录一笔</div>
         <div style="display:flex;gap:8px;margin-bottom:8px">
-          <button id="finTypeExpense" class="add-btn" style="flex:1;background:#c83a3a">支出</button>
-          <button id="finTypeIncome" class="add-btn" style="flex:1;background:#3a8a3a">收入</button>
+          <button id="finTypeExpense" onclick="setFinType('expense')" class="add-btn" style="flex:1;background:#c83a3a">支出</button>
+          <button id="finTypeIncome" onclick="setFinType('income')" class="add-btn" style="flex:1;background:#3a8a3a">收入</button>
         </div>
         <div class="add-bar" style="margin-bottom:8px">
           <input type="number" id="finAmount" placeholder="金额" step="0.01">
@@ -1609,6 +1609,17 @@
   bindBtn('saveReviewBtn', function() { saveReview(); });
   bindBtn('finTypeExpense', function() { setFinType('expense'); });
   bindBtn('finTypeIncome', function() { setFinType('income'); });
+  // 额外兜底绑定 - 用普通 addEventListener，无 preventDefault
+  ['finTypeExpense', 'finTypeIncome'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && !el.dataset.bound) {
+      el.dataset.bound = '1';
+      el.addEventListener('click', function() {
+        var tag = id === 'finTypeExpense' ? 'expense' : 'income';
+        if (typeof setFinType === 'function') setFinType(tag);
+      });
+    }
+  });
   bindBtn('datePrev', function() { changeDate(-1); });
   bindBtn('dateNext', function() { changeDate(1); });
   bindBtn('weightAddBtn', function() { addWeight(); });
