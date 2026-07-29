@@ -514,7 +514,7 @@
 
       <div class="add-bar">
         <input type="text" id="taskInput" placeholder="添加新任务...">
-        <button class="add-btn" id="addTaskBtn">+ 添加</button>
+        <button class="add-btn" id="addTaskBtn" onclick="addTask()">+ 添加</button>
       </div>
     </div>
 
@@ -622,7 +622,7 @@
       <div id="notesList"></div>
       <div class="add-bar">
         <input type="text" id="noteInput" placeholder="记一条学习笔记...">
-        <button class="add-btn" id="addNoteBtn">+ 记录</button>
+        <button class="add-btn" id="addNoteBtn" onclick="addNote()">+ 记录</button>
       </div>
     </div>
 
@@ -643,7 +643,7 @@
       </div>
 
       <textarea id="moodArea" placeholder="今天发生了什么？学到了什么？心情怎样？..."></textarea>
-      <button class="timer-btn timer-start" id="saveMoodBtn" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存心情</button>
+      <button class="timer-btn timer-start" id="saveMoodBtn" onclick="saveMood()" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存心情</button>
 
       <div class="section-label">历史记录</div>
       <div id="moodHistory"></div>
@@ -671,7 +671,7 @@
         </div>
         <div class="add-bar">
           <input type="text" id="finNote" placeholder="备注（如：午餐、奶茶）">
-          <button class="add-btn" id="addFinanceBtn">+ 记</button>
+          <button class="add-btn" id="addFinanceBtn" onclick="addFinance()">+ 记</button>
         </div>
       </div>
 
@@ -745,7 +745,7 @@
       <div class="weight-input-row">
         <input type="date" id="weightDate" style="max-width:140px">
         <input type="number" id="weightInput" placeholder="输入体重（kg）" step="0.1" min="30" max="200">
-        <button class="add-btn" id="weightAddBtn">记录</button>
+        <button class="add-btn" id="weightAddBtn" onclick="addWeight()">记录</button>
       </div>
 
       <div class="weight-chart">
@@ -764,8 +764,8 @@
       <div class="timer-card">
         <div class="timer-time" id="focusTimer">00:00:00</div>
         <div class="timer-row">
-          <button class="timer-btn timer-start" id="timerStartBtn">开始专注</button>
-          <button class="timer-btn timer-stop" id="timerStopBtn">结束</button>
+          <button class="timer-btn timer-start" id="timerStartBtn" onclick="window.startFocus()">开始专注</button>
+          <button class="timer-btn timer-stop" id="timerStopBtn" onclick="window.stopFocus()">结束</button>
         </div>
       </div>
 
@@ -824,7 +824,7 @@
       </div>
 
       <textarea id="reviewArea" placeholder="写下本周学习总结：&#10;1. 完成了哪些目标？&#10;2. 遇到了什么困难？&#10;3. 下周如何改进？"></textarea>
-      <button class="timer-btn timer-start" id="saveReviewBtn" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存复盘</button>
+      <button class="timer-btn timer-start" id="saveReviewBtn" onclick="saveReview()" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存复盘</button>
     </div>
 
     <!-- ===== Tab 8: 备忘录 ===== -->
@@ -832,7 +832,7 @@
       <div class="page-title">📋 备忘录</div>
       <div class="page-hint">杂事备忘，解放大脑</div>
       <textarea id="memoArea" placeholder="记录杂事、待办、提醒..."></textarea>
-      <button class="timer-btn timer-start" id="saveMemoBtn" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存备忘录</button>
+      <button class="timer-btn timer-start" id="saveMemoBtn" onclick="saveMemo()" style="margin-top:12px;width:100%;background:var(--primary)">💾 保存备忘录</button>
     </div>
   </div>
 
