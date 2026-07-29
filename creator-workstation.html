@@ -1009,8 +1009,8 @@
   // 绑定事件
   var fe = document.getElementById('finTypeExpense');
   var fi = document.getElementById('finTypeIncome');
-  if (fe) { fe.onclick = function() { setFinType('expense'); }; fe.addEventListener('touchend', function(e) { e.preventDefault(); setFinType('expense'); }); }
-  if (fi) { fi.onclick = function() { setFinType('income'); }; fi.addEventListener('touchend', function(e) { e.preventDefault(); setFinType('income'); }); }
+  if (fe) { fe.onclick = function() { setFinType('expense'); }; fe }
+  if (fi) { fi.onclick = function() { setFinType('income'); }; fi }
 
   // ----- 日期与倒计时 -----
   const today = new Date();
@@ -1111,7 +1111,7 @@
       selectedMood = btn.dataset.mood;
     };
     btn.addEventListener('click', pick);
-    btn.addEventListener('touchend', function(e) { e.preventDefault(); pick(); });
+    btn
   });
 
   const moodArea = document.getElementById('moodArea');
@@ -1184,7 +1184,7 @@
       try { localStorage.setItem('ws_fit_today', JSON.stringify({date: todayStrShort, states})); } catch(e) {}
     };
     item.addEventListener('click', toggleFit);
-    item.addEventListener('touchend', function(e) { e.preventDefault(); toggleFit(); });
+    item
   });
   // 恢复今日状态
   if (fitLastDate === todayStrShort) {
@@ -1217,7 +1217,7 @@
       currentFocusTag = chip.dataset.tag;
     };
     chip.addEventListener('click', pickTag);
-    chip.addEventListener('touchend', function(e) { e.preventDefault(); pickTag(); });
+    chip
   });
 
   // 专注记录
@@ -1285,11 +1285,11 @@
   var timerStop = document.getElementById('timerStopBtn');
   if (timerStart) {
     timerStart.onclick = function() { window.startFocus(); };
-    timerStart.addEventListener('touchend', function(e) { e.preventDefault(); window.startFocus(); });
+    timerStart
   }
   if (timerStop) {
     timerStop.onclick = function() { window.stopFocus(); };
-    timerStop.addEventListener('touchend', function(e) { e.preventDefault(); window.stopFocus(); });
+    timerStop
   }
 
   // 渲染计时历史
@@ -1369,7 +1369,7 @@
       refreshReview();
     };
     tab.addEventListener('click', sel);
-    tab.addEventListener('touchend', function(e) { e.preventDefault(); sel(); });
+    tab
   });
 
   // 分类配置（颜色 + 图标）
@@ -1668,41 +1668,25 @@
   // ----- 初始化渲染 -----
   renderPlanTasks();
   renderNotes();
-  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(function(){}); }
-
-  // 通用按钮绑定函数（双事件 + 安全检查）
-  function bindBtn(id, fn) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.onclick = function(e) { e.preventDefault(); fn(el, e); };
-    el.addEventListener('touchend', function(e) { e.preventDefault(); fn(el, e); });
-  }
-
-  // 绑定所有按钮
-  bindBtn('timerStartBtn', function() { window.startFocus(); });
-  bindBtn('timerStopBtn', function() { window.stopFocus(); });
-  bindBtn('addTaskBtn', function() { addTask(); });
-  bindBtn('addNoteBtn', function() { addNote(); });
-  bindBtn('addFinanceBtn', function() { addFinance(); });
-  bindBtn('saveMoodBtn', function() { saveMood(); });
-  bindBtn('saveMemoBtn', function() { saveMemo(); });
-  bindBtn('saveReviewBtn', function() { saveReview(); });
-  bindBtn('finTypeExpense', function() { setFinType('expense'); });
-  bindBtn('finTypeIncome', function() { setFinType('income'); });
-  // 额外兜底绑定 - 用普通 addEventListener，无 preventDefault
-  ['finTypeExpense', 'finTypeIncome'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el && !el.dataset.bound) {
-      el.dataset.bound = '1';
-      el.addEventListener('click', function() {
-        var tag = id === 'finTypeExpense' ? 'expense' : 'income';
-        if (typeof setFinType === 'function') setFinType(tag);
-      });
-    }
-  });
-  bindBtn('datePrev', function() { changeDate(-1); });
-  bindBtn('dateNext', function() { changeDate(1); });
-  bindBtn('weightAddBtn', function() { addWeight(); });
+  // ====== 所有按钮事件统一放这里 ======
+  // 计时器
+  var tsBtn = document.getElementById('timerStartBtn');
+  var tpBtn = document.getElementById('timerStopBtn');
+  if (tsBtn) tsBtn.onclick = function() { window.startFocus(); };
+  if (tpBtn) tpBtn.onclick = function() { window.stopFocus(); };
+  // 理财切换
+  var feBtn = document.getElementById('finTypeExpense');
+  var fiBtn = document.getElementById('finTypeIncome');
+  if (feBtn) feBtn.onclick = function() { setFinType('expense'); };
+  if (fiBtn) fiBtn.onclick = function() { setFinType('income'); };
+  // 日期切换
+  var dp = document.getElementById('datePrev');
+  var dn = document.getElementById('dateNext');
+  if (dp) dp.onclick = function() { changeDate(-1); };
+  if (dn) dn.onclick = function() { changeDate(1); };
+  // 体重
+  var wa = document.getElementById('weightAddBtn');
+  if (wa) wa.onclick = function() { addWeight(); };
   // 输入框回车绑定（由 bindBtn 统一处理）
 
   // 输入框回车绑定
