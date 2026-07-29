@@ -1143,46 +1143,71 @@
   var focusLog = [];
   try { focusLog = JSON.parse(localStorage.getItem('ws_focus_log') || '[]'); } catch(e) { focusLog = []; }
   function saveFocusLog() { try { localStorage.setItem('ws_focus_log', JSON.stringify(focusLog)); } catch(e) {} }
-  function startTimer(name) {
-    if (state.intervals[name]) return;
-    var startBtn = document.querySelector('#page-timer .timer-start');
-    if (startBtn) { startBtn.textContent = '专注中（' + currentFocusTag + '）...'; startBtn.style.opacity = '0.7'; }
-    state.intervals[name] = setInterval(function() {
-      state.timers[name]++;
-      document.getElementById(name+'Timer').textContent = fmt(state.timers[name]);
-    }, 1000);
-  }
-  function stopTimer(name) {
-    clearInterval(state.intervals[name]);
-    state.intervals[name] = null;
-    var elapsed = state.timers[name];
-    if (elapsed > 0) {
-      state.todaySessions++;
-      state.todayFocusMin += Math.round(elapsed / 60);
-      document.getElementById('todaySessions').textContent = state.todaySessions;
-      document.getElementById('todayMinutes').textContent = state.todayFocusMin;
-      // 记录专注
-      focusLog.push({ tag: currentFocusTag, duration: elapsed, ts: Date.now() });
-      saveFocusLog();
-      alert('🎉 专注结束！\n类型：' + currentFocusTag + '\n时长：' + fmt(elapsed));
+
+  // 计时器 - 用最简单的方式：全局函数 + 全局state
+  window.__focusState = { interval: null, elapsed: 0, startedTag: '学习', todaySessions: 0, todayFocusMin: 0 };
+
+  window.startFocus = function() {
+    try {
+      if (window.__focusState.interval) return;
+      var tag = currentFocusTag || '学习';
+      window.__focusState.startedTag = tag;
+      var btn = document.getElementById('timerStartBtn');
+      if (btn) { btn.textContent = '专注中（' + tag + '）...'; btn.style.opacity = '0.7'; }
+      window.__focusState.interval = setInterval(function() {
+        window.__focusState.elapsed++;
+        var h = Math.floor(window.__focusState.elapsed / 3600);
+        var m = Math.floor((window.__focusState.elapsed % 3600) / 60);
+        var s = window.__focusState.elapsed % 60;
+        var t = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+        var timer = document.getElementById('focusTimer');
+        if (timer) timer.textContent = t;
+      }, 1000);
+    } catch(err) {
+      alert('启动失败：' + err.message);
     }
-    state.timers[name] = 0;
-    document.getElementById(name+'Timer').textContent = '00:00:00';
-    var startBtn = document.querySelector('#page-timer .timer-start');
-    if (startBtn) { startBtn.textContent = '开始专注'; startBtn.style.opacity = '1'; }
-    refreshReview();
-  }
+  };
+
+  window.stopFocus = function() {
+    try {
+      if (!window.__focusState.interval) return;
+      clearInterval(window.__focusState.interval);
+      window.__focusState.interval = null;
+      var elapsed = window.__focusState.elapsed;
+      if (elapsed > 0) {
+        window.__focusState.todaySessions++;
+        window.__focusState.todayFocusMin += Math.round(elapsed / 60);
+        var ts = document.getElementById('todaySessions');
+        var tm = document.getElementById('todayMinutes');
+        if (ts) ts.textContent = window.__focusState.todaySessions;
+        if (tm) tm.textContent = window.__focusState.todayFocusMin;
+        focusLog.push({ tag: window.__focusState.startedTag, duration: elapsed, ts: Date.now() });
+        saveFocusLog();
+        var h = Math.floor(elapsed / 3600);
+        var m = Math.floor((elapsed % 3600) / 60);
+        alert('🎉 专注结束！\n类型：' + window.__focusState.startedTag + '\n时长：' + h + '小时' + m + '分钟');
+        if (typeof refreshReview === 'function') refreshReview();
+      }
+      window.__focusState.elapsed = 0;
+      var timer = document.getElementById('focusTimer');
+      if (timer) timer.textContent = '00:00:00';
+      var btn = document.getElementById('timerStartBtn');
+      if (btn) { btn.textContent = '开始专注'; btn.style.opacity = '1'; }
+    } catch(err) {
+      alert('停止失败：' + err.message);
+    }
+  };
 
   // 绑定计时器按钮（双保险）
   var timerStart = document.getElementById('timerStartBtn');
   var timerStop = document.getElementById('timerStopBtn');
   if (timerStart) {
-    timerStart.onclick = function() { startTimer('focus'); };
-    timerStart.addEventListener('touchend', function(e) { e.preventDefault(); startTimer('focus'); });
+    timerStart.onclick = function() { window.startFocus(); };
+    timerStart.addEventListener('touchend', function(e) { e.preventDefault(); window.startFocus(); });
   }
   if (timerStop) {
-    timerStop.onclick = function() { stopTimer('focus'); };
-    timerStop.addEventListener('touchend', function(e) { e.preventDefault(); stopTimer('focus'); });
+    timerStop.onclick = function() { window.stopFocus(); };
+    timerStop.addEventListener('touchend', function(e) { e.preventDefault(); window.stopFocus(); });
   }
 
   // ----- 备忘录 -----
@@ -1356,8 +1381,8 @@
   }
 
   // 绑定所有按钮
-  bindBtn('timerStartBtn', function() { startTimer('focus'); });
-  bindBtn('timerStopBtn', function() { stopTimer('focus'); });
+  bindBtn('timerStartBtn', function() { window.startFocus(); });
+  bindBtn('timerStopBtn', function() { window.stopFocus(); });
   bindBtn('addTaskBtn', function() { addTask(); });
   bindBtn('addNoteBtn', function() { addNote(); });
   bindBtn('addFinanceBtn', function() { addFinance(); });
