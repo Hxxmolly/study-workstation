@@ -418,6 +418,22 @@
   .wl-item .wl-weight { font-weight: 700; color: var(--primary); flex: 1; text-align: right; }
   .wl-item .wl-del { color: #d4d5e0; font-size: 16px; padding: 2px 6px; cursor: pointer; }
 
+  /* 计时历史 */
+  .fh-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 14px; background: var(--card);
+    border-radius: 10px; margin-bottom: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .fh-item .fh-tag {
+    padding: 2px 10px; border-radius: 12px; font-size: 11px;
+    font-weight: 600; color: white;
+  }
+  .fh-item .fh-info { flex: 1; }
+  .fh-item .fh-time { font-size: 12px; color: var(--text-sub); }
+  .fh-item .fh-dur { font-size: 14px; font-weight: 700; color: var(--primary); }
+  .fh-item .fh-del { color: #d4d5e0; font-size: 16px; padding: 4px 8px; cursor: pointer; }
+
   .bottom-nav { display: none; }  /* replaced by side-nav */
 </style>
 </head>
@@ -727,6 +743,7 @@
       </div>
 
       <div class="weight-input-row">
+        <input type="date" id="weightDate" style="max-width:140px">
         <input type="number" id="weightInput" placeholder="输入体重（kg）" step="0.1" min="30" max="200">
         <button class="add-btn" id="weightAddBtn">记录</button>
       </div>
@@ -768,6 +785,9 @@
         <div class="stat-box"><div class="stat-val" id="todayMinutes">0</div><div class="stat-lbl">累计分钟</div></div>
       </div>
       <div class="card"><div class="card-title">💡 番茄工作法</div><div class="card-desc">专注25分钟 → 休息5分钟 → 每4个循环休息15分钟。试试看，效率倍增！</div></div>
+
+      <div class="section-label">🕐 历史专注记录</div>
+      <div id="focusHistory"></div>
     </div>
 
     <!-- ===== Tab 7: 学习复盘 ===== -->
@@ -1248,6 +1268,7 @@
         var m = Math.floor((elapsed % 3600) / 60);
         alert('🎉 专注结束！\n类型：' + window.__focusState.startedTag + '\n时长：' + h + '小时' + m + '分钟');
         if (typeof refreshReview === 'function') refreshReview();
+        if (typeof renderFocusHistory === 'function') renderFocusHistory();
       }
       window.__focusState.elapsed = 0;
       var timer = document.getElementById('focusTimer');
@@ -1270,6 +1291,55 @@
     timerStop.onclick = function() { window.stopFocus(); };
     timerStop.addEventListener('touchend', function(e) { e.preventDefault(); window.stopFocus(); });
   }
+
+  // 渲染计时历史
+  function renderFocusHistory() {
+    var list = document.getElementById('focusHistory');
+    if (!list) return;
+    if (!focusLog.length) {
+      list.innerHTML = '<div style="text-align:center;color:var(--text-sub);padding:18px;font-size:13px">还没有专注记录</div>';
+      return;
+    }
+    list.innerHTML = '';
+    for (var i = focusLog.length - 1; i >= Math.max(0, focusLog.length - 50); i--) {
+      var item = focusLog[i];
+      var dd = new Date(item.ts);
+      var h = Math.floor(item.duration / 3600);
+      var m = Math.floor((item.duration % 3600) / 60);
+      var s = item.duration % 60;
+      var timeStr = (h > 0 ? h + '小时' : '') + (m > 0 ? m + '分' : '') + (h === 0 && m === 0 ? s + '秒' : '');
+      var dateStr = (dd.getMonth() + 1) + '/' + dd.getDate() + ' ' + dd.getHours().toString().padStart(2, '0') + ':' + dd.getMinutes().toString().padStart(2, '0');
+      var cfg = (typeof TAG_CONFIG !== 'undefined' && TAG_CONFIG[item.tag]) ? TAG_CONFIG[item.tag] : { color: '#8a8b9b', icon: '📌' };
+      var div = document.createElement('div');
+      div.className = 'fh-item';
+      div.innerHTML = '<span class="fh-tag" style="background:' + cfg.color + '">' + (cfg.icon || '📌') + ' ' + item.tag + '</span><div class="fh-info"><div class="fh-time">' + dateStr + '</div></div><div class="fh-dur">' + timeStr + '</div><div class="fh-del" data-i="' + i + '">×</div>';
+      div.querySelector('.fh-del').onclick = function(e) {
+        e.stopPropagation();
+        if (!confirm('删除这条专注记录？')) return;
+        focusLog.splice(parseInt(this.dataset.i), 1);
+        saveFocusLog();
+        // 同步更新今日统计
+        var todayCount = 0, todayMin = 0;
+        var todayStart = new Date(); todayStart.setHours(0,0,0,0);
+        focusLog.forEach(function(x) {
+          if (new Date(x.ts) >= todayStart) {
+            todayCount++;
+            todayMin += Math.round(x.duration / 60);
+          }
+        });
+        window.__focusState.todaySessions = todayCount;
+        window.__focusState.todayFocusMin = todayMin;
+        var ts = document.getElementById('todaySessions');
+        var tm = document.getElementById('todayMinutes');
+        if (ts) ts.textContent = todayCount;
+        if (tm) tm.textContent = todayMin;
+        renderFocusHistory();
+        if (typeof refreshReview === 'function') refreshReview();
+      };
+      list.appendChild(div);
+    }
+  }
+  renderFocusHistory();
 
   // ----- 备忘录 -----
   const memoArea = document.getElementById('memoArea');
@@ -1427,12 +1497,22 @@
 
   function addWeight() {
     var inp = document.getElementById('weightInput');
+    var dateInp = document.getElementById('weightDate');
     var v = parseFloat(inp.value);
     if (!v || v < 30 || v > 200) return alert('请输入 30-200 范围内的体重');
-    weightLog.push({ weight: v, ts: Date.now() });
+    var ts = Date.now();
+    // 如果选了日期，使用那天的 9:00 作为记录时间
+    if (dateInp && dateInp.value) {
+      var parts = dateInp.value.split('-');
+      if (parts.length === 3) {
+        ts = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 9, 0, 0).getTime();
+      }
+    }
+    weightLog.push({ weight: v, ts: ts });
     weightLog.sort(function(a, b) { return a.ts - b.ts; });
     saveWeightLog();
     inp.value = '';
+    if (dateInp) dateInp.value = '';
     renderWeight();
   }
 
@@ -1466,7 +1546,7 @@
     if (!weightLog.length) {
       list.innerHTML = '<div style="text-align:center;color:var(--text-sub);padding:20px;font-size:13px">还没有记录</div>';
     } else {
-      for (var i = weightLog.length - 1; i >= Math.max(0, weightLog.length - 20); i--) {
+      for (var i = weightLog.length - 1; i >= Math.max(0, weightLog.length - 30); i--) {
         var item = weightLog[i];
         var dd = new Date(item.ts);
         var dateStr = (dd.getMonth() + 1) + '/' + dd.getDate() + ' ' + dd.getHours().toString().padStart(2, '0') + ':' + dd.getMinutes().toString().padStart(2, '0');
