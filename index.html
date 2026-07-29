@@ -383,6 +383,41 @@
   .cat-bar-bg { height: 4px; background: #f0f0f5; border-radius: 2px; margin-top: 6px; overflow: hidden; }
   .cat-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
 
+  /* 体重 */
+  .weight-input-row {
+    display: flex; gap: 8px; align-items: center;
+    background: var(--card); border-radius: 14px;
+    padding: 10px; box-shadow: var(--shadow); margin-bottom: 10px;
+  }
+  .weight-input-row input {
+    flex: 1; border: none; outline: none; font-size: 14px;
+    background: transparent; color: var(--text);
+    -webkit-appearance: none;
+  }
+  .weight-input-row input::placeholder { color: #c0c1cb; }
+  .weight-current {
+    background: linear-gradient(135deg, #4a6fa5 0%, #6b8fce 100%);
+    border-radius: 18px; padding: 20px; margin-bottom: 12px;
+    color: white; text-align: center; box-shadow: 0 4px 14px rgba(74,111,165,0.25);
+  }
+  .weight-current .w-val { font-size: 48px; font-weight: 200; line-height: 1; }
+  .weight-current .w-label { font-size: 13px; opacity: 0.9; margin-top: 6px; }
+  .weight-current .w-trend { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+  .weight-chart {
+    background: var(--card); border-radius: 16px; padding: 16px;
+    box-shadow: var(--shadow); margin-bottom: 12px; overflow-x: auto;
+  }
+  .weight-chart-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+  .weight-list .wl-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; background: var(--card);
+    border-radius: 10px; margin-bottom: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .wl-item .wl-date { font-size: 13px; color: var(--text); }
+  .wl-item .wl-weight { font-weight: 700; color: var(--primary); flex: 1; text-align: right; }
+  .wl-item .wl-del { color: #d4d5e0; font-size: 16px; padding: 2px 6px; cursor: pointer; }
+
   .bottom-nav { display: none; }  /* replaced by side-nav */
 </style>
 </head>
@@ -408,6 +443,7 @@
     <button class="nav-item" data-page="mood" onclick="switchTab('mood')"><span class="nav-icon">📔</span><span class="nav-label">心情</span></button>
     <button class="nav-item" data-page="finance" onclick="switchTab('finance')"><span class="nav-icon">💰</span><span class="nav-label">理财</span></button>
     <button class="nav-item" data-page="fitness" onclick="switchTab('fitness')"><span class="nav-icon">💪</span><span class="nav-label">健身</span></button>
+    <button class="nav-item" data-page="weight" onclick="switchTab('weight')"><span class="nav-icon">⚖️</span><span class="nav-label">体重</span></button>
     <button class="nav-item" data-page="timer" onclick="switchTab('timer')"><span class="nav-icon">⏱️</span><span class="nav-label">计时</span></button>
     <button class="nav-item" data-page="review" onclick="switchTab('review')"><span class="nav-icon">📈</span><span class="nav-label">复盘</span></button>
   </nav>
@@ -677,6 +713,31 @@
         <div class="fit-group-header">🏃 有氧（1个动作）</div>
         <div class="fit-item"><div class="fi-check"></div><div style="flex:1"><div class="fi-name">爬坡</div><div class="fi-note">跑步机坡度12-15，速度4-5，30分钟</div></div></div>
       </div>
+    </div>
+
+    <!-- ===== Tab: 体重 ===== -->
+    <div class="page" id="page-weight">
+      <div class="page-title">⚖️ 体重记录</div>
+      <div class="page-hint">每天记录，见证变化</div>
+
+      <div class="weight-current">
+        <div class="w-val" id="weightLatest">--</div>
+        <div class="w-label">最新体重（kg）</div>
+        <div class="w-trend" id="weightTrend"></div>
+      </div>
+
+      <div class="weight-input-row">
+        <input type="number" id="weightInput" placeholder="输入体重（kg）" step="0.1" min="30" max="200">
+        <button class="add-btn" id="weightAddBtn">记录</button>
+      </div>
+
+      <div class="weight-chart">
+        <div class="weight-chart-title">📈 体重曲线</div>
+        <svg id="weightChart" viewBox="0 0 360 200" width="100%" height="200" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+
+      <div class="section-label">历史记录</div>
+      <div class="weight-list" id="weightList"></div>
     </div>
 
     <!-- ===== Tab 6: 学习计时 ===== -->
@@ -1359,6 +1420,163 @@
   }
   refreshReview();
 
+  // ----- 体重记录 -----
+  var weightLog = [];
+  try { weightLog = JSON.parse(localStorage.getItem('ws_weight') || '[]'); } catch(e) { weightLog = []; }
+  function saveWeightLog() { try { localStorage.setItem('ws_weight', JSON.stringify(weightLog)); } catch(e) {} }
+
+  function addWeight() {
+    var inp = document.getElementById('weightInput');
+    var v = parseFloat(inp.value);
+    if (!v || v < 30 || v > 200) return alert('请输入 30-200 范围内的体重');
+    weightLog.push({ weight: v, ts: Date.now() });
+    weightLog.sort(function(a, b) { return a.ts - b.ts; });
+    saveWeightLog();
+    inp.value = '';
+    renderWeight();
+  }
+
+  function renderWeight() {
+    // 最新体重
+    var latest = weightLog.length ? weightLog[weightLog.length - 1] : null;
+    var wl = document.getElementById('weightLatest');
+    var wt = document.getElementById('weightTrend');
+    var d = new Date();
+    var todayStr = (d.getMonth() + 1) + '/' + d.getDate();
+    if (latest) {
+      wl.textContent = latest.weight.toFixed(1);
+      if (weightLog.length > 1) {
+        var prev = weightLog[weightLog.length - 2].weight;
+        var diff = latest.weight - prev;
+        var arrow = diff < 0 ? '↓' : '↑';
+        wt.textContent = '比上次 ' + arrow + ' ' + Math.abs(diff).toFixed(1) + ' kg';
+        wt.style.color = diff < 0 ? '#3a8a3a' : '#c83a3a';
+      } else {
+        wt.textContent = '首次记录';
+        wt.style.color = '';
+      }
+    } else {
+      wl.textContent = '--';
+      wt.textContent = '';
+    }
+
+    // 历史列表
+    var list = document.getElementById('weightList');
+    list.innerHTML = '';
+    if (!weightLog.length) {
+      list.innerHTML = '<div style="text-align:center;color:var(--text-sub);padding:20px;font-size:13px">还没有记录</div>';
+    } else {
+      for (var i = weightLog.length - 1; i >= Math.max(0, weightLog.length - 20); i--) {
+        var item = weightLog[i];
+        var dd = new Date(item.ts);
+        var dateStr = (dd.getMonth() + 1) + '/' + dd.getDate() + ' ' + dd.getHours().toString().padStart(2, '0') + ':' + dd.getMinutes().toString().padStart(2, '0');
+        var div = document.createElement('div');
+        div.className = 'wl-item';
+        div.innerHTML = '<span class="wl-date">' + dateStr + '</span><span class="wl-weight">' + item.weight.toFixed(1) + ' kg</span><span class="wl-del" data-i="' + i + '">×</span>';
+        div.querySelector('.wl-del').onclick = function(e) {
+          e.stopPropagation();
+          weightLog.splice(parseInt(this.dataset.i), 1);
+          saveWeightLog();
+          renderWeight();
+        };
+        list.appendChild(div);
+      }
+    }
+
+    // SVG 曲线图
+    drawWeightChart();
+  }
+
+  function drawWeightChart() {
+    var svg = document.getElementById('weightChart');
+    if (!svg) return;
+    svg.innerHTML = '';
+    if (weightLog.length < 1) {
+      var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', '180'); text.setAttribute('y', '105');
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', '#c0c1cb'); text.setAttribute('font-size', '14');
+      text.textContent = '暂无数据，添加体重后自动生成曲线';
+      svg.appendChild(text);
+      return;
+    }
+
+    var W = 360, H = 200, pad = { top: 20, right: 20, bottom: 30, left: 40 };
+    var pw = W - pad.left - pad.right, ph = H - pad.top - pad.bottom;
+
+    var minW = Infinity, maxW = -Infinity;
+    weightLog.forEach(function(w) { if (w.weight < minW) minW = w.weight; if (w.weight > maxW) maxW = w.weight; });
+    if (maxW === minW) { minW -= 1; maxW += 1; }
+    var range = maxW - minW;
+
+    var firstTs = weightLog[0].ts;
+    var lastTs = weightLog[weightLog.length - 1].ts;
+    var tsRange = lastTs - firstTs || 1;
+
+    function xPos(ts) { return pad.left + ((ts - firstTs) / tsRange) * pw; }
+    function yPos(w) { return pad.top + ph - ((w - minW) / range) * ph; }
+
+    // 网格线
+    var ns = 'http://www.w3.org/2000/svg';
+    for (var i = 0; i <= 4; i++) {
+      var yy = pad.top + (ph / 4) * i;
+      var line = document.createElementNS(ns, 'line');
+      line.setAttribute('x1', pad.left); line.setAttribute('x2', W - pad.right);
+      line.setAttribute('y1', yy); line.setAttribute('y2', yy);
+      line.setAttribute('stroke', '#f0f0f5'); line.setAttribute('stroke-width', '1');
+      svg.appendChild(line);
+      var label = document.createElementNS(ns, 'text');
+      label.setAttribute('x', pad.left - 5); label.setAttribute('y', yy + 4);
+      label.setAttribute('text-anchor', 'end'); label.setAttribute('fill', '#c0c1cb');
+      label.setAttribute('font-size', '10');
+      label.textContent = (maxW - (range / 4) * i).toFixed(1);
+      svg.appendChild(label);
+    }
+
+    // 曲线路径
+    var d = '';
+    weightLog.forEach(function(w, idx) {
+      var x = xPos(w.ts), y = yPos(w.weight);
+      d += (idx === 0 ? 'M ' : ' L ') + x.toFixed(1) + ' ' + y.toFixed(1);
+    });
+    var path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', 'none'); path.setAttribute('stroke', '#4a6fa5');
+    path.setAttribute('stroke-width', '2.5'); path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(path);
+
+    // 面积填充
+    var areaD = d + ' L ' + xPos(lastTs).toFixed(1) + ' ' + (pad.top + ph) + ' L ' + xPos(firstTs).toFixed(1) + ' ' + (pad.top + ph) + ' Z';
+    var area = document.createElementNS(ns, 'path');
+    area.setAttribute('d', areaD);
+    area.setAttribute('fill', 'url(#wGrad)'); area.setAttribute('opacity', '0.15');
+    var grad = document.createElementNS(ns, 'linearGradient');
+    grad.setAttribute('id', 'wGrad');
+    grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0');
+    grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1');
+    var stop1 = document.createElementNS(ns, 'stop');
+    stop1.setAttribute('offset', '0%'); stop1.setAttribute('stop-color', '#4a6fa5');
+    var stop2 = document.createElementNS(ns, 'stop');
+    stop2.setAttribute('offset', '100%'); stop2.setAttribute('stop-color', '#4a6fa5');
+    stop2.setAttribute('stop-opacity', '0');
+    grad.appendChild(stop1); grad.appendChild(stop2);
+    svg.appendChild(grad);
+    svg.appendChild(area);
+
+    // 数据点
+    weightLog.forEach(function(w) {
+      var x = xPos(w.ts), y = yPos(w.weight);
+      var dot = document.createElementNS(ns, 'circle');
+      dot.setAttribute('cx', x.toFixed(1)); dot.setAttribute('cy', y.toFixed(1));
+      dot.setAttribute('r', '4'); dot.setAttribute('fill', '#4a6fa5');
+      dot.setAttribute('stroke', 'white'); dot.setAttribute('stroke-width', '2');
+      svg.appendChild(dot);
+    });
+  }
+
+  renderWeight();
+
   // ----- Checkbox for review page -----
   document.querySelectorAll('#page-review .task-item').forEach(item => {
     item.addEventListener('click', function() {
@@ -1393,6 +1611,8 @@
   bindBtn('finTypeIncome', function() { setFinType('income'); });
   bindBtn('datePrev', function() { changeDate(-1); });
   bindBtn('dateNext', function() { changeDate(1); });
+  bindBtn('weightAddBtn', function() { addWeight(); });
+  // 输入框回车绑定（由 bindBtn 统一处理）
 
   // 输入框回车绑定
   var taskInp = document.getElementById('taskInput');
