@@ -383,6 +383,26 @@
   .cat-bar-bg { height: 4px; background: #f0f0f5; border-radius: 2px; margin-top: 6px; overflow: hidden; }
   .cat-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
 
+  /* AI 总结 */
+  .ai-summary {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9ff 100%);
+    border-radius: 16px; padding: 18px;
+    box-shadow: 0 2px 12px rgba(74,111,165,0.08);
+    border: 1px solid #d4cce8;
+    font-size: 14px; color: var(--text); line-height: 1.8;
+  }
+  .ai-summary .ai-title {
+    font-size: 16px; font-weight: 700; color: var(--primary);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+  }
+  .ai-summary .ai-section { margin-bottom: 12px; }
+  .ai-summary .ai-section-title { font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+  .ai-summary ul { padding-left: 20px; }
+  .ai-summary li { margin-bottom: 4px; }
+  .ai-summary .ai-highlight { color: #c87a3a; font-weight: 600; }
+  .ai-summary .ai-praise { color: #3a8a3a; }
+  .ai-summary .ai-tip { background: rgba(255,255,255,0.6); padding: 10px 12px; border-radius: 10px; margin-top: 8px; font-size: 13px; }
+
   /* 体重 */
   .weight-input-row {
     display: flex; gap: 8px; align-items: center;
@@ -797,9 +817,9 @@
 
       <!-- 时间选择 -->
       <div class="period-tabs" id="periodTabs">
-        <button class="period-tab selected" data-period="week">本周</button>
-        <button class="period-tab" data-period="month">本月</button>
-        <button class="period-tab" data-period="today">今日</button>
+        <button class="period-tab selected" data-period="week" onclick="setReviewPeriod(this, 'week')">本周</button>
+        <button class="period-tab" data-period="month" onclick="setReviewPeriod(this, 'month')">本月</button>
+        <button class="period-tab" data-period="today" onclick="setReviewPeriod(this, 'today')">今日</button>
       </div>
 
       <!-- 饼图 + 总时长 -->
@@ -814,6 +834,12 @@
       <!-- 分类列表 -->
       <div class="section-label">📋 各分类时长</div>
       <div id="categoryStats"></div>
+
+      <div class="section-label">🤖 AI 周报自动生成</div>
+      <button class="timer-btn timer-start" id="genSummaryBtn" onclick="generateWeeklySummary()" style="background:var(--primary);width:100%;padding:14px">
+        🪄 一键生成本周总结
+      </button>
+      <div id="aiSummary" style="margin-top:14px"></div>
 
       <div class="section-label">🎯 本周目标</div>
       <div class="card">
@@ -1708,6 +1734,99 @@
     document.querySelectorAll('#moodOptions button').forEach(function(b) { b.classList.remove('selected'); });
     if (el) el.classList.add('selected');
   };
+
+  // 复盘时段切换
+  window.setReviewPeriod = function(el, period) {
+    reviewPeriod = period;
+    document.querySelectorAll('#periodTabs .period-tab').forEach(function(t) { t.classList.remove('selected'); });
+    if (el) el.classList.add('selected');
+    refreshReview();
+  };
+
+  // AI 周报生成
+  window.generateWeeklySummary = function() {
+    try {
+      var data = getReviewData('week');
+      var total = Object.values(data).reduce(function(a, b) { return a + b; }, 0);
+      var hours = Math.floor(total / 3600);
+      var mins = Math.floor((total % 3600) / 60);
+      // 任务完成率
+      var taskDone = taskState.filter(function(t) { return t.done; }).length;
+      var taskTotal = taskState.length;
+      var taskRate = taskTotal ? Math.round(taskDone / taskTotal * 100) : 0;
+      // 分类排名
+      var ranking = Object.entries(data).filter(function(e) { return e[1] > 0; }).sort(function(a, b) { return b[1] - a[1]; });
+      var topCat = ranking[0] ? ranking[0][0] : '无';
+      var topCatHours = ranking[0] ? Math.round(ranking[0][1] / 3600 * 10) / 10 : 0;
+      // 评价
+      var eval = '';
+      if (total >= 25 * 3600) eval = '🎉 本周完成度超棒！已经超过每天4小时学习目标';
+      else if (total >= 15 * 3600) eval = '👍 不错的节奏，继续保持';
+      else if (total >= 5 * 3600) eval = '💪 有在学习但还可以加强';
+      else eval = '🌱 本周起步阶段，明天可以多投入一些';
+
+      // 建议
+      var tips = [];
+      if (taskRate < 50) tips.push('任务完成率偏低，试试把大任务拆成小任务');
+      if (ranking.length === 1) tips.push('专注类型过于单一，可以增加多样性（如加锻炼）');
+      if (total < 10 * 3600) tips.push('本周专注时间较少，建议设置每日最低目标');
+      if (ranking.find(function(e) { return e[0] === '锻炼'; }) == null) tips.push('记得每周至少锻炼2-3次');
+      if (ranking.find(function(e) { return e[0] === '学习'; }) && ranking.find(function(e) { return e[0] === '学习'; })[1] < 8 * 3600) tips.push('学习时间不足，9/3前单词冲刺要加油');
+      if (tips.length === 0) tips.push('保持节奏，你已经做得很好了！');
+      // 鼓励
+      var praise = [];
+      if (taskRate >= 80) praise.push('任务完成率高达' + taskRate + '%，执行力惊人');
+      if (total >= 20 * 3600) praise.push('总专注时长突破' + Math.round(total/3600) + '小时');
+      if (ranking.length >= 3) praise.push('本周保持多元投入，' + ranking.length + '种类型都有覆盖');
+      if (praise.length === 0) praise.push('能在繁忙中坚持记录就是进步');
+
+      // 渲染
+      var html = '<div class="ai-summary">';
+      html += '<div class="ai-title">🪄 本周复盘（自动生成）</div>';
+      html += '<div class="ai-section"><div class="ai-section-title">📊 数据概览</div>';
+      html += '<ul>';
+      html += '<li>本周总专注：<span class="ai-highlight">' + hours + '小时' + mins + '分钟</span></li>';
+      html += '<li>任务完成：<span class="ai-highlight">' + taskDone + '/' + taskTotal + '</span>（' + taskRate + '%）</li>';
+      html += '<li>主要专注类型：<span class="ai-highlight">' + topCat + '</span>（' + topCatHours + '小时）</li>';
+      html += '</ul></div>';
+      if (ranking.length > 0) {
+        html += '<div class="ai-section"><div class="ai-section-title">📈 各类型时长</div><ul>';
+        ranking.forEach(function(e) {
+          var h = Math.floor(e[1] / 3600);
+          var m = Math.floor((e[1] % 3600) / 60);
+          var pct = Math.round(e[1] / total * 100);
+          html += '<li>' + e[0] + '：' + h + 'h' + m + 'm（' + pct + '%）</li>';
+        });
+        html += '</ul></div>';
+      }
+      html += '<div class="ai-section"><div class="ai-section-title">💡 整体评价</div>';
+      html += '<div class="ai-tip">' + eval + '</div></div>';
+      html += '<div class="ai-section"><div class="ai-section-title">✨ 亮点</div>';
+      html += '<div class="ai-tip ai-praise">';
+      praise.forEach(function(p) { html += '• ' + p + '<br>'; });
+      html += '</div></div>';
+      html += '<div class="ai-section"><div class="ai-section-title">🎯 下周建议</div>';
+      html += '<div class="ai-tip">';
+      tips.forEach(function(t) { html += '• ' + t + '<br>'; });
+      html += '</div></div>';
+      html += '<div class="ai-tip" style="text-align:center;color:var(--text-sub);font-size:12px;margin-top:10px">📅 ' + new Date().toLocaleDateString('zh-CN') + ' 自动生成</div>';
+      html += '</div>';
+
+      document.getElementById('aiSummary').innerHTML = html;
+      // 保存历史
+      var summaryKey = 'ws_summary_' + new Date().toISOString().slice(0,10);
+      try { localStorage.setItem(summaryKey, html); } catch(e) {}
+    } catch(err) {
+      alert('生成失败：' + err.message);
+    }
+  };
+
+  // 恢复今日总结
+  var todaySummaryKey = 'ws_summary_' + new Date().toISOString().slice(0,10);
+  try {
+    var savedSummary = localStorage.getItem(todaySummaryKey);
+    if (savedSummary) document.getElementById('aiSummary').innerHTML = savedSummary;
+  } catch(e) {}
 
   // 🔥 强制清除所有旧 Service Worker（解决缓存导致点击失效的根源）
   if ('serviceWorker' in navigator) {
