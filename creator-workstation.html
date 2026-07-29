@@ -634,11 +634,11 @@
       <div class="mood-card">
         <div style="font-size:13px;color:var(--text-sub);margin-bottom:10px">今天感觉如何？</div>
         <div class="mood-options" id="moodOptions">
-          <button data-mood="happy">😊</button>
-          <button data-mood="calm">😌</button>
-          <button data-mood="tired">😴</button>
-          <button data-mood="sad">😢</button>
-          <button data-mood="angry">😠</button>
+          <button data-mood="happy" onclick="selectMood(this, 'happy')">😊</button>
+          <button data-mood="calm" onclick="selectMood(this, 'calm')">😌</button>
+          <button data-mood="tired" onclick="selectMood(this, 'tired')">😴</button>
+          <button data-mood="sad" onclick="selectMood(this, 'sad')">😢</button>
+          <button data-mood="angry" onclick="selectMood(this, 'angry')">😠</button>
         </div>
       </div>
 
@@ -771,12 +771,12 @@
 
       <div class="section-label">选择专注类型</div>
       <div class="tag-selector" id="focusTagSelector">
-        <button class="tag-chip selected" data-tag="学习">📚 学习</button>
-        <button class="tag-chip" data-tag="锻炼">💪 锻炼</button>
-        <button class="tag-chip" data-tag="工作">💼 工作</button>
-        <button class="tag-chip" data-tag="上课">🎓 上课</button>
-        <button class="tag-chip" data-tag="开会">🗣️ 开会</button>
-        <button class="tag-chip" data-tag="其他">📌 其他</button>
+        <button class="tag-chip selected" data-tag="学习" onclick="selectTag(this, '学习')">📚 学习</button>
+        <button class="tag-chip" data-tag="锻炼" onclick="selectTag(this, '锻炼')">💪 锻炼</button>
+        <button class="tag-chip" data-tag="工作" onclick="selectTag(this, '工作')">💼 工作</button>
+        <button class="tag-chip" data-tag="上课" onclick="selectTag(this, '上课')">🎓 上课</button>
+        <button class="tag-chip" data-tag="开会" onclick="selectTag(this, '开会')">🗣️ 开会</button>
+        <button class="tag-chip" data-tag="其他" onclick="selectTag(this, '其他')">📌 其他</button>
       </div>
 
       <div class="section-label">今日专注统计</div>
@@ -1696,6 +1696,18 @@
   if (noteInp) noteInp.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addNote(); } });
   var finInp = document.getElementById('finAmount');
   if (finInp) finInp.addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addFinance(); } });
+
+  // 🔥 全局按钮函数（供 inline onclick 调用）
+  window.selectTag = function(el, tag) {
+    currentFocusTag = tag;
+    document.querySelectorAll('#focusTagSelector .tag-chip').forEach(function(c) { c.classList.remove('selected'); });
+    if (el) el.classList.add('selected');
+  };
+  window.selectMood = function(el, mood) {
+    selectedMood = mood;
+    document.querySelectorAll('#moodOptions button').forEach(function(b) { b.classList.remove('selected'); });
+    if (el) el.classList.add('selected');
+  };
 
   // 🔥 强制清除所有旧 Service Worker（解决缓存导致点击失效的根源）
   if ('serviceWorker' in navigator) {
