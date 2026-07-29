@@ -325,6 +325,64 @@
   .fit-item .fi-name { flex: 1; font-size: 13px; }
   .fit-item .fi-note { font-size: 10px; color: var(--text-sub); margin-top: 2px; }
 
+  /* 标签选择器 */
+  .tag-selector { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .tag-chip {
+    padding: 8px 14px; border-radius: 18px; border: 1.5px solid var(--border);
+    background: var(--card); font-size: 13px; color: var(--text-sub);
+    cursor: pointer; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tag-chip:active { transform: scale(0.95); }
+  .tag-chip.selected { background: var(--primary); color: white; border-color: var(--primary); }
+
+  /* 复盘 - 时间周期 */
+  .period-tabs {
+    display: flex; background: var(--card); border-radius: 12px;
+    padding: 4px; margin-bottom: 14px; box-shadow: var(--shadow);
+  }
+  .period-tab {
+    flex: 1; padding: 10px; border: none; background: transparent;
+    border-radius: 10px; font-size: 13px; color: var(--text-sub);
+    cursor: pointer; transition: all 0.2s; font-weight: 500;
+  }
+  .period-tab.selected { background: var(--primary); color: white; }
+
+  /* 饼图 */
+  .review-hero {
+    background: var(--card); border-radius: 18px; padding: 20px;
+    box-shadow: var(--shadow); margin-bottom: 16px;
+    display: flex; justify-content: center; align-items: center;
+    position: relative;
+  }
+  .review-center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center; pointer-events: none;
+  }
+  .rc-total { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1.1; }
+  .rc-total small { font-size: 12px; color: var(--text-sub); margin-left: 2px; }
+  .rc-label { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
+
+  /* 分类列表 */
+  .cat-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; background: var(--card);
+    border-radius: 12px; margin-bottom: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .cat-row .cat-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: white; flex-shrink: 0;
+  }
+  .cat-row .cat-info { flex: 1; }
+  .cat-row .cat-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .cat-row .cat-time { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+  .cat-row .cat-pct { font-size: 14px; font-weight: 700; color: var(--text); }
+  .cat-bar-bg { height: 4px; background: #f0f0f5; border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .cat-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+
   .bottom-nav { display: none; }  /* replaced by side-nav */
 </style>
 </head>
@@ -624,6 +682,7 @@
     <!-- ===== Tab 6: 学习计时 ===== -->
     <div class="page" id="page-timer">
       <div class="page-title">⏱️ 专注计时</div>
+
       <div class="timer-card">
         <div class="timer-time" id="focusTimer">00:00:00</div>
         <div class="timer-row">
@@ -631,6 +690,17 @@
           <button class="timer-btn timer-stop" id="timerStopBtn">结束</button>
         </div>
       </div>
+
+      <div class="section-label">选择专注类型</div>
+      <div class="tag-selector" id="focusTagSelector">
+        <button class="tag-chip selected" data-tag="学习">📚 学习</button>
+        <button class="tag-chip" data-tag="锻炼">💪 锻炼</button>
+        <button class="tag-chip" data-tag="工作">💼 工作</button>
+        <button class="tag-chip" data-tag="上课">🎓 上课</button>
+        <button class="tag-chip" data-tag="开会">🗣️ 开会</button>
+        <button class="tag-chip" data-tag="其他">📌 其他</button>
+      </div>
+
       <div class="section-label">今日专注统计</div>
       <div class="stats-row">
         <div class="stat-box"><div class="stat-val" id="todaySessions">0</div><div class="stat-lbl">专注次数</div></div>
@@ -642,25 +712,34 @@
     <!-- ===== Tab 7: 学习复盘 ===== -->
     <div class="page" id="page-review">
       <div class="page-title">📈 学习复盘</div>
-      <div class="page-hint">复盘是进步最快的路径</div>
+      <div class="page-hint">数据可视化，看到努力的样子</div>
 
-      <div class="card">
-        <div class="card-title">📊 本周数据</div>
-        <div class="stats-row" style="grid-template-columns:1fr 1fr 1fr">
-          <div class="stat-box"><div class="stat-val">--</div><div class="stat-lbl">学习天数</div></div>
-          <div class="stat-box"><div class="stat-val">--</div><div class="stat-lbl">WPS刷题</div></div>
-          <div class="stat-box"><div class="stat-val">--</div><div class="stat-lbl">六级单词</div></div>
+      <!-- 时间选择 -->
+      <div class="period-tabs" id="periodTabs">
+        <button class="period-tab selected" data-period="week">本周</button>
+        <button class="period-tab" data-period="month">本月</button>
+        <button class="period-tab" data-period="today">今日</button>
+      </div>
+
+      <!-- 饼图 + 总时长 -->
+      <div class="review-hero">
+        <svg id="pieChart" viewBox="0 0 220 220" width="220" height="220"></svg>
+        <div class="review-center">
+          <div class="rc-total"><span id="rcTotalHours">0</span><small>小时</small> <span id="rcTotalMins">0</span><small>分</small></div>
+          <div class="rc-label" id="rcLabel">本周专注</div>
         </div>
       </div>
 
+      <!-- 分类列表 -->
+      <div class="section-label">📋 各分类时长</div>
+      <div id="categoryStats"></div>
+
+      <div class="section-label">🎯 本周目标</div>
       <div class="card">
-        <div class="card-title">🎯 本周目标</div>
-        <div class="card-desc">
-          <div class="task-item"><div class="task-check"></div><div class="task-text">每天学习≥4小时</div></div>
-          <div class="task-item"><div class="task-check"></div><div class="task-text">WPS操作题完成5套</div></div>
-          <div class="task-item"><div class="task-check"></div><div class="task-text">六级单词背350个</div></div>
-          <div class="task-item"><div class="task-check"></div><div class="task-text">听力练习完成5篇</div></div>
-        </div>
+        <div class="task-item"><div class="task-check"></div><div class="task-text">每天学习≥4小时</div></div>
+        <div class="task-item"><div class="task-check"></div><div class="task-text">WPS操作题完成5套</div></div>
+        <div class="task-item"><div class="task-check"></div><div class="task-text">六级单词背350个</div></div>
+        <div class="task-item"><div class="task-check"></div><div class="task-text">锻炼打卡≥3次</div></div>
       </div>
 
       <textarea id="reviewArea" placeholder="写下本周学习总结：&#10;1. 完成了哪些目标？&#10;2. 遇到了什么困难？&#10;3. 下周如何改进？"></textarea>
@@ -1046,10 +1125,28 @@
            Math.floor((t%3600)/60).toString().padStart(2,'0') + ':' +
            (t%60).toString().padStart(2,'0');
   }
+  // 全局：当前选中的标签
+  var currentFocusTag = '学习';
+
+  // 标签选择
+  document.querySelectorAll('#focusTagSelector .tag-chip').forEach(function(chip) {
+    var pickTag = function() {
+      document.querySelectorAll('#focusTagSelector .tag-chip').forEach(function(c) { c.classList.remove('selected'); });
+      chip.classList.add('selected');
+      currentFocusTag = chip.dataset.tag;
+    };
+    chip.addEventListener('click', pickTag);
+    chip.addEventListener('touchend', function(e) { e.preventDefault(); pickTag(); });
+  });
+
+  // 专注记录
+  var focusLog = [];
+  try { focusLog = JSON.parse(localStorage.getItem('ws_focus_log') || '[]'); } catch(e) { focusLog = []; }
+  function saveFocusLog() { try { localStorage.setItem('ws_focus_log', JSON.stringify(focusLog)); } catch(e) {} }
   function startTimer(name) {
     if (state.intervals[name]) return;
     var startBtn = document.querySelector('#page-timer .timer-start');
-    if (startBtn) { startBtn.textContent = '专注中...'; startBtn.style.opacity = '0.7'; }
+    if (startBtn) { startBtn.textContent = '专注中（' + currentFocusTag + '）...'; startBtn.style.opacity = '0.7'; }
     state.intervals[name] = setInterval(function() {
       state.timers[name]++;
       document.getElementById(name+'Timer').textContent = fmt(state.timers[name]);
@@ -1064,12 +1161,16 @@
       state.todayFocusMin += Math.round(elapsed / 60);
       document.getElementById('todaySessions').textContent = state.todaySessions;
       document.getElementById('todayMinutes').textContent = state.todayFocusMin;
-      alert('🎉 专注结束！\n本次时长：' + fmt(elapsed));
+      // 记录专注
+      focusLog.push({ tag: currentFocusTag, duration: elapsed, ts: Date.now() });
+      saveFocusLog();
+      alert('🎉 专注结束！\n类型：' + currentFocusTag + '\n时长：' + fmt(elapsed));
     }
     state.timers[name] = 0;
     document.getElementById(name+'Timer').textContent = '00:00:00';
     var startBtn = document.querySelector('#page-timer .timer-start');
     if (startBtn) { startBtn.textContent = '开始专注'; startBtn.style.opacity = '1'; }
+    refreshReview();
   }
 
   // 绑定计时器按钮（双保险）
@@ -1094,13 +1195,144 @@
   }
 
   // ----- 复盘 -----
+  var reviewPeriod = 'week';
   const reviewArea = document.getElementById('reviewArea');
   const savedReview = localStorage.getItem('ws_review');
   if (savedReview) reviewArea.value = savedReview;
   function saveReview() {
-    localStorage.setItem('ws_review', reviewArea.value);
+    try { localStorage.setItem('ws_review', reviewArea.value); } catch(e) {}
     alert('✓ 复盘已保存');
   }
+
+  // 周期切换
+  document.querySelectorAll('#periodTabs .period-tab').forEach(function(tab) {
+    var sel = function() {
+      document.querySelectorAll('#periodTabs .period-tab').forEach(function(t) { t.classList.remove('selected'); });
+      tab.classList.add('selected');
+      reviewPeriod = tab.dataset.period;
+      refreshReview();
+    };
+    tab.addEventListener('click', sel);
+    tab.addEventListener('touchend', function(e) { e.preventDefault(); sel(); });
+  });
+
+  // 分类配置（颜色 + 图标）
+  var TAG_CONFIG = {
+    '学习':   { color: '#4a6fa5', icon: '📚' },
+    '锻炼':   { color: '#c87a3a', icon: '💪' },
+    '工作':   { color: '#3a8a3a', icon: '💼' },
+    '上课':   { color: '#9a6fa5', icon: '🎓' },
+    '开会':   { color: '#6b8fce', icon: '🗣️' },
+    '其他':   { color: '#8a8b9b', icon: '📌' }
+  };
+
+  // 复盘计算
+  function getReviewData(period) {
+    var now = new Date();
+    var start = new Date();
+    if (period === 'today') {
+      start.setHours(0, 0, 0, 0);
+    } else if (period === 'week') {
+      var day = now.getDay() || 7;
+      start.setDate(now.getDate() - day + 1);
+      start.setHours(0, 0, 0, 0);
+    } else if (period === 'month') {
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+    }
+    var total = {};
+    focusLog.forEach(function(item) {
+      if (new Date(item.ts) >= start) {
+        total[item.tag] = (total[item.tag] || 0) + item.duration;
+      }
+    });
+    return total;
+  }
+
+  // 绘制饼图
+  function drawPieChart(data, period) {
+    var svg = document.getElementById('pieChart');
+    svg.innerHTML = '';
+    var total = Object.values(data).reduce(function(a, b) { return a + b; }, 0);
+    var labels = {today:'今日', week:'本周', month:'本月'};
+    document.getElementById('rcLabel').textContent = labels[period] + '专注';
+    document.getElementById('rcTotalHours').textContent = Math.floor(total / 3600);
+    document.getElementById('rcTotalMins').textContent = Math.floor((total % 3600) / 60);
+
+    var cx = 110, cy = 110, r = 90;
+    var ns = 'http://www.w3.org/2000/svg';
+
+    if (total === 0) {
+      // 空圆环
+      var circle = document.createElementNS(ns, 'circle');
+      circle.setAttribute('cx', cx); circle.setAttribute('cy', cy);
+      circle.setAttribute('r', r);
+      circle.setAttribute('fill', 'none');
+      circle.setAttribute('stroke', '#e8e8f0');
+      circle.setAttribute('stroke-width', '28');
+      svg.appendChild(circle);
+      return;
+    }
+
+    var startAngle = -Math.PI / 2;
+    var entries = Object.entries(data).filter(function(e) { return e[1] > 0; });
+    entries.forEach(function(entry) {
+      var tag = entry[0];
+      var dur = entry[1];
+      var sweep = (dur / total) * Math.PI * 2;
+      var endAngle = startAngle + sweep;
+      var x1 = cx + r * Math.cos(startAngle);
+      var y1 = cy + r * Math.sin(startAngle);
+      var x2 = cx + r * Math.cos(endAngle);
+      var y2 = cy + r * Math.sin(endAngle);
+      var large = sweep > Math.PI ? 1 : 0;
+      var path = document.createElementNS(ns, 'path');
+      var d = 'M ' + cx + ' ' + cy + ' L ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2 + ' Z';
+      path.setAttribute('d', d);
+      path.setAttribute('fill', TAG_CONFIG[tag] ? TAG_CONFIG[tag].color : '#8a8b9b');
+      path.setAttribute('opacity', '0.85');
+      svg.appendChild(path);
+      startAngle = endAngle;
+    });
+    // 中心镂空
+    var inner = document.createElementNS(ns, 'circle');
+    inner.setAttribute('cx', cx); inner.setAttribute('cy', cy); inner.setAttribute('r', '55');
+    inner.setAttribute('fill', '#ffffff');
+    svg.appendChild(inner);
+  }
+
+  // 渲染分类列表
+  function renderCategoryStats(data) {
+    var total = Object.values(data).reduce(function(a, b) { return a + b; }, 0);
+    var list = document.getElementById('categoryStats');
+    if (!list) return;
+    var entries = Object.entries(data).filter(function(e) { return e[1] > 0; });
+    if (!entries.length) {
+      list.innerHTML = '<div style="text-align:center;color:var(--text-sub);padding:24px;font-size:13px">还没有专注记录<br>去「计时」开始第一次专注吧 💪</div>';
+      return;
+    }
+    entries.sort(function(a, b) { return b[1] - a[1]; });
+    list.innerHTML = '';
+    entries.forEach(function(entry) {
+      var tag = entry[0]; var dur = entry[1];
+      var pct = total > 0 ? (dur / total * 100) : 0;
+      var hours = Math.floor(dur / 3600);
+      var mins = Math.floor((dur % 3600) / 60);
+      var timeStr = hours > 0 ? (hours + '小时' + mins + '分') : (mins + '分钟');
+      var cfg = TAG_CONFIG[tag] || { color: '#8a8b9b', icon: '📌' };
+      var div = document.createElement('div');
+      div.className = 'cat-row';
+      div.innerHTML = '<div class="cat-icon" style="background:' + cfg.color + '">' + cfg.icon + '</div><div class="cat-info"><div class="cat-name"># ' + tag + '</div><div class="cat-time">' + timeStr + '</div><div class="cat-bar-bg"><div class="cat-bar-fill" style="width:' + pct.toFixed(1) + '%;background:' + cfg.color + '"></div></div></div><div class="cat-pct">' + pct.toFixed(1) + '%</div>';
+      list.appendChild(div);
+    });
+  }
+
+  function refreshReview() {
+    var data = getReviewData(reviewPeriod);
+    drawPieChart(data, reviewPeriod);
+    renderCategoryStats(data);
+  }
+  refreshReview();
 
   // ----- Checkbox for review page -----
   document.querySelectorAll('#page-review .task-item').forEach(item => {
